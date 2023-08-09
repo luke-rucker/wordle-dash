@@ -1,0 +1,6 @@
+{
+  "main": "party/main.ts",
+  "parties": {
+    "lobby": "party/lobby.ts"
+  }
+}
