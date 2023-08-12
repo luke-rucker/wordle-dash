@@ -1,17 +1,17 @@
-import usePartySocket from 'partysocket/react'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Landing } from '@/pages/landing'
+import { Lobby } from '@/pages/lobby'
+import { Game } from '@/pages/game'
 
 export function App() {
-  const socket = usePartySocket({
-    host: 'localhost:1999',
-    party: 'lobby',
-    room: 'main',
-    onOpen(e) {
-      console.log(e)
-    },
-    onMessage(event) {
-      console.log(event)
-    },
-  })
-
-  return <h1>Helloooo</h1>
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route index element={<Landing />} />
+        <Route path="lobby" element={<Lobby />} />
+        <Route path="lobby/:lobbyId" />
+        <Route path="game/:gameId" element={<Game />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
