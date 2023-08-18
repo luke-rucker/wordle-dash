@@ -1,18 +1,12 @@
 import type { PartyKitConnection, PartyKitServer } from 'partykit/server'
 import * as v from 'valibot'
 import { createPartyRpc } from 'partyrpc/server'
-import { randomSolution } from './lib/words/solutions'
 import { createIdToken, verifyIdToken } from './lib/id-tokens'
+import { Game } from './lib/game'
 
 type GameConnection = PartyKitConnection & {
   userId?: string
 }
-
-type PlayerState = {
-  guesses: Array<string>
-}
-
-type Context = { solution: string; players: Record<string, PlayerState> }
 
 type YouAreResponse = {
   type: 'youAre'
@@ -24,13 +18,13 @@ type FullGameResponse = { type: 'fullGame' }
 
 type PartyResponses = YouAreResponse | FullGameResponse
 
-const party = createPartyRpc<PartyResponses, Context>()
+const party = createPartyRpc<PartyResponses, Game>()
 
 export const safeGame = party.events({
   whoami: {
     schema: v.object({ token: v.nullable(v.string()) }),
-    async onMessage(message, ws: GameConnection, room, ctx) {
-      if (Object.keys(ctx.players).length >= 2) {
+    async onMessage(message, ws: GameConnection, room, game) {
+      if (game.isFull()) {
         return party.send(ws, { type: 'fullGame' })
       }
 
@@ -42,6 +36,7 @@ export const safeGame = party.events({
 
         if (userId) {
           ws.userId = userId
+          game.addPlayer(userId)
           return party.send(ws, { type: 'youAre', userId })
         }
       }
@@ -50,23 +45,25 @@ export const safeGame = party.events({
         room.env.JWT_SECRET as string
       )
       ws.userId = userId
+      game.addPlayer(userId)
       party.send(ws, { type: 'youAre', userId, token })
     },
+  },
+  submitGuess: {
+    schema: v.string(),
+    onMessage(message, ws, room, ctx) {},
   },
 })
 
 export type SafeGameEvents = typeof safeGame.events
 export type SafeGameResponses = typeof safeGame.responses
 
-const context: Context = {
-  solution: randomSolution(),
-  players: {},
-}
+const game = new Game()
 
 export default {
   async onConnect(ws, room) {
     ws.addEventListener('message', evt => {
-      safeGame.onMessage(evt.data, ws, room, context)
+      safeGame.onMessage(evt.data, ws, room, game)
     })
   },
 } satisfies PartyKitServer
