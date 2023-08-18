@@ -1,11 +1,14 @@
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import { buttonVariants } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 
 export function Landing() {
   return (
     <div className="h-full flex flex-col">
-      <header className="border-b flex items-center h-16 container">
+      <header className="border-b flex items-center justify-between h-16 container">
         <h1 className="text-xl font-bold">Word Dash</h1>
+
+        <ThemeSwitcher />
       </header>
 
       <div className="flex-grow flex flex-col items-center justify-center">
