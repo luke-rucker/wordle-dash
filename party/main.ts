@@ -1,7 +1,7 @@
 import type { PartyKitServer } from 'partykit/server'
 
 export default {
-  onConnect(websocket, room) {
+  onRequest(request, room) {
     // TODO
   },
 } satisfies PartyKitServer

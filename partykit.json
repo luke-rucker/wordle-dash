@@ -1,6 +1,8 @@
 {
+  "name": "word-dash",
   "main": "party/main.ts",
   "parties": {
-    "lobby": "party/lobby.ts"
+    "lobby": "party/lobby.ts",
+    "game": "party/game.ts"
   }
 }
