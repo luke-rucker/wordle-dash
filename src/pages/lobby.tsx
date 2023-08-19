@@ -47,10 +47,10 @@ export function Lobby() {
 
         <CardContent>
           <img
-            width={500}
-            height={300}
+            width={800}
+            height={600}
             className="w-full h-auto object-cover rounded-md mb-4"
-            src={`https://source.unsplash.com/random/500x300/?orientation=landscape&${pet}&nonce=${Date.now()}`}
+            src={`https://source.unsplash.com/random/800x600/?orientation=landscape&${pet}&nonce=${Date.now()}`}
           />
 
           <p>
