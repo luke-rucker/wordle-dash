@@ -1,4 +1,5 @@
 import { Icons } from '@/components/icons'
+import { SettingsModal } from '@/components/settings-modal'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,7 +41,11 @@ export function Landing() {
             <h1 className="text-xl font-bold tracking-tight">Word Dash</h1>
           </div>
 
-          <ThemeSwitcher />
+          <div className="flex items-center space-x-2">
+            <SettingsModal />
+
+            <ThemeSwitcher />
+          </div>
         </div>
       </header>
 
@@ -69,7 +74,7 @@ export function Landing() {
 
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger asChild>
                   <Button disabled size="lg" variant="secondary">
                     Play a Friend
                   </Button>
@@ -81,7 +86,7 @@ export function Landing() {
             </TooltipProvider>
           </div>
 
-          <LobbyModal open={lobbyOpen} onOpenChange={setLobbyOpen} />
+          {lobbyOpen ? <LobbyModal onOpenChange={setLobbyOpen} /> : null}
         </main>
       </div>
     </div>
@@ -89,10 +94,8 @@ export function Landing() {
 }
 
 function LobbyModal({
-  open,
   onOpenChange,
 }: {
-  open: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const navigate = useNavigate()
@@ -111,7 +114,7 @@ function LobbyModal({
   })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>You're in line</DialogTitle>
@@ -124,7 +127,7 @@ function LobbyModal({
         <img
           width={500}
           height={300}
-          className="w-full h-auto object-cover"
+          className="w-full h-auto object-cover rounded-md"
           src="https://source.unsplash.com/random/500x300/?orientation=landscape&cat"
         />
 
