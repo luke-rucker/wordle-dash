@@ -81,8 +81,8 @@ export function SettingsModal() {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Pets</SelectLabel>
-                  <SelectItem value="cats">Cats</SelectItem>
-                  <SelectItem value="dogs">Dogs</SelectItem>
+                  <SelectItem value="cat">Cats</SelectItem>
+                  <SelectItem value="dog">Dogs</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

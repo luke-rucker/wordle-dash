@@ -33,7 +33,7 @@ export function Landing() {
             <div
               role="img"
               aria-label="dashing away"
-              className="rotate-180 text-xl leading-4"
+              className="rotate-180 text-xl leading-none"
             >
               💨
             </div>
@@ -50,21 +50,22 @@ export function Landing() {
       </header>
 
       <div className="flex-grow flex flex-col items-center justify-center">
-        <main className="max-w-md w-full container">
-          <div className="flex items-center space-x-3 mb-5">
-            <div
+        <main className="max-w-xl w-full container">
+          <h2 className="mb-5 text-5xl font-semibold tracking-tight">
+            Wordle, but you{' '}
+            <span
               role="img"
               aria-label="dashing away"
-              className="rotate-180 text-5xl leading-4"
+              className=" inline-block rotate-180 text-5xl leading-none"
             >
               💨
-            </div>
-
-            <h2 className="text-5xl font-semibold tracking-tight">Word Dash</h2>
-          </div>
+            </span>{' '}
+            race against other people.
+          </h2>
 
           <p className="text-lg text-muted-foreground mb-7">
-            Wordle, but you race against other people.
+            Your favorite word game, with a twist. Take the competition out of
+            the groupchat and onto the race course.
           </p>
 
           <div className="flex items-center space-x-4">
@@ -113,6 +114,8 @@ function LobbyModal({
     },
   })
 
+  const pet = localStorage.getItem('pet') ?? 'cat'
+
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent>
@@ -128,12 +131,22 @@ function LobbyModal({
           width={500}
           height={300}
           className="w-full h-auto object-cover rounded-md"
-          src="https://source.unsplash.com/random/500x300/?orientation=landscape&cat"
+          src={`https://source.unsplash.com/random/500x300/?orientation=landscape&${pet}&nonce=${Date.now()}`}
         />
 
         <p>
-          While you're waiting, enjoy this cat picture :) If you're tired of
-          waiting, share us with your friends!
+          While you're waiting, enjoy this {pet} picture{' '}
+          {pet === 'dog' ? (
+            <span role="img" aria-label="dog face" className="leading-none">
+              🐶
+            </span>
+          ) : (
+            <span role="img" aria-label="grinning cat" className="leading-none">
+              😺
+            </span>
+          )}
+          {'. '}
+          If you're tired of waiting, share us with your friends!
         </p>
 
         <DialogFooter className="gap-2">
@@ -149,7 +162,7 @@ function LobbyModal({
                   text: "You've been invited to play Word Dash. Think Wordle, but you race against other people.",
                   url: window.location.href,
                 })
-                .catch()
+                .catch(() => {})
             }}
           >
             <Icons.Share className="mr-2 w-4 h-4" />
