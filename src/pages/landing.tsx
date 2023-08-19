@@ -9,6 +9,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { PARTY_KIT_HOST } from '@/constants'
 import { LobbyMessage, MAIN_LOBBY } from '@party/lobby'
 import usePartySocket from 'partysocket/react'
@@ -61,9 +67,18 @@ export function Landing() {
               Play
             </Button>
 
-            <Button disabled size="lg" variant="secondary">
-              Play a Friend
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Button disabled size="lg" variant="secondary">
+                    Play a Friend
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Coming soon :)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           <LobbyModal open={lobbyOpen} onOpenChange={setLobbyOpen} />
