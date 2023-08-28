@@ -93,6 +93,7 @@ export function Game() {
       </div>
 
       <Keyboard
+        guesses={you.guesses}
         onLetter={letter => client.send({ type: 'typeGuess', guess: letter })}
         onDelete={() => client.send({ type: 'typeGuess', guess: null })}
         onEnter={() => client.send({ type: 'submitGuess' })}
