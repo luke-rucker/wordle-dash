@@ -9,6 +9,7 @@ import {
   CardFooter,
 } from '@/components/ui/card'
 import { PARTY_KIT_HOST } from '@/constants'
+import { usePet } from '@/stores/settings-store'
 import { MAIN_LOBBY, LobbyMessage } from '@party/lobby'
 import usePartySocket from 'partysocket/react'
 import * as React from 'react'
@@ -30,7 +31,7 @@ export function Lobby() {
     },
   })
 
-  const pet = localStorage.getItem('pet') ?? 'cat'
+  const pet = usePet()
 
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
@@ -49,7 +50,7 @@ export function Lobby() {
           <img
             width={800}
             height={600}
-            className="w-full h-auto object-cover rounded-md mb-4"
+            className="w-full h-auto object-center rounded-md mb-4"
             src={`https://source.unsplash.com/random/800x600/?orientation=landscape&${pet}&nonce=${Date.now()}`}
           />
 

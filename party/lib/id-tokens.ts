@@ -15,14 +15,13 @@ function getSecret(rawSecret: string) {
 }
 
 export async function createIdToken(rawSecret: string) {
-  console.log('rawSecret', rawSecret)
   const userId = uid()
   const token = await new jose.SignJWT({ sub: userId })
     .setProtectedHeader({ alg })
     .setIssuedAt()
     .setIssuer(issuer)
     .setAudience(audience)
-    .setExpirationTime('2h')
+    .setExpirationTime('1yr')
     .sign(getSecret(rawSecret))
   return { userId, token }
 }
@@ -33,6 +32,7 @@ export async function verifyIdToken(token: string, rawSecret: string) {
       issuer,
       audience,
     })
+    if (!payload.sub) return null
     return payload.sub
   } catch (err) {
     return null

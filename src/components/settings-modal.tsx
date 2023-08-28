@@ -20,15 +20,19 @@ import {
   SelectLabel,
   SelectItem,
 } from '@/components/ui/select'
+import { usePet, useSettingsStore, useUsername } from '@/stores/settings-store'
 import * as React from 'react'
 
 export function SettingsModal() {
   const [open, setOpen] = React.useState(false)
 
-  const [username, setUsername] = React.useState(
-    localStorage.getItem('username') ?? ''
-  )
-  const [pet, setPet] = React.useState(localStorage.getItem('pet') ?? undefined)
+  const savedUsername = useUsername()
+  const savedPet = usePet()
+
+  const [username, setUsername] = React.useState(savedUsername)
+  const [pet, setPet] = React.useState(savedPet)
+
+  const setSettings = useSettingsStore(state => state.setSettings)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -51,9 +55,10 @@ export function SettingsModal() {
           className="grid gap-4 py-4"
           onSubmit={e => {
             e.preventDefault()
-            localStorage.setItem('username', username)
-            if (pet) localStorage.setItem('pet', pet)
-            else localStorage.removeItem('pet')
+            setSettings({
+              username,
+              pet,
+            })
             setOpen(false)
           }}
         >
@@ -64,7 +69,7 @@ export function SettingsModal() {
             <Input
               id="username"
               placeholder="WordleMaster"
-              value={username}
+              value={username || ''}
               onChange={e => setUsername(e.target.value)}
               className="col-span-3"
             />
@@ -74,15 +79,15 @@ export function SettingsModal() {
             <Label htmlFor="pet" className="text-right">
               Pet
             </Label>
-            <Select value={pet} onValueChange={setPet}>
+            <Select value={pet} onValueChange={val => setPet(val as any)}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Pick your favorite pet" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Pets</SelectLabel>
-                  <SelectItem value="cat">Cats</SelectItem>
                   <SelectItem value="dog">Dogs</SelectItem>
+                  <SelectItem value="cat">Cats</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
