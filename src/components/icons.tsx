@@ -8,13 +8,13 @@ import {
   Loader2,
   Share,
   Settings,
-  ArrowLeft,
+  ArrowBigLeft,
 } from 'lucide-react'
 
 export type Icon = LucideIcon
 
 export const Icons = {
-  Backspace: ArrowLeft,
+  Backspace: ArrowBigLeft,
   Sun: SunMedium,
   Moon,
   Laptop,

@@ -89,7 +89,7 @@ export class Game {
     // TODO: add guess validation
     if (this.players[id].guesses.length >= 6) return
     const guess = this.players[id].currentGuess
-    if (guess.length !== 6) return
+    if (guess.length !== SOLUTION_SIZE) return
     const letterStatuses = compare(guess, this.solution)
     this.players[id].guesses.push({ raw: guess, computed: letterStatuses })
     this.players[id].currentGuess = ''

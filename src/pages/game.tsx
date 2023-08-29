@@ -79,14 +79,14 @@ export function Game() {
   const other = others[0]
 
   return (
-    <div className="container">
-      <div className="flex flex-col items-center md:hidden">
+    <div className="h-full py-4 flex flex-col items-center justify-between">
+      <div className="container flex flex-col items-center space-y-2 md:hidden">
         <GamePreview {...other} />
 
         <GameGrid {...you} />
       </div>
 
-      <div className="hidden md:flex gap-8 justify-center">
+      <div className="container hidden md:flex gap-8 justify-center">
         <GameGrid {...you} />
 
         <GameGrid {...other} />
@@ -171,9 +171,11 @@ function Cell({ status, hideLetter, letter }: CellProps) {
         'h-14 w-14 flex items-center justify-center border-2 text-4xl font-bold uppercase',
         {
           'border-primary': status === 'typed',
-          'border-muted bg-muted': status === 'absent',
+          'bg-primary text-primary-foreground dark:bg-muted dark:text-white opacity-50 dark:opacity-100':
+            status === 'absent',
           'border-yellow-400 bg-yellow-400 text-white': status === 'present',
-          'border-green-800 bg-green-800 text-white': status === 'correct',
+          'border-green-600 bg-green-600 dark:border-green-800 dark:bg-green-800 text-white':
+            status === 'correct',
         }
       )}
     >
