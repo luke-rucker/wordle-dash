@@ -11,12 +11,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
+import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
+import { useSession } from '@supabase/auth-helpers-react'
 import { Link, Outlet } from 'react-router-dom'
 
 export function Layout() {
-  const { session, user } = useAuth()
+  const session = useSession()
 
   return (
     <div className="h-full flex flex-col">
@@ -31,7 +32,7 @@ export function Layout() {
               💨
             </div>
 
-            <h1 className="text-xl font-bold tracking-tight">Word Dash</h1>
+            <h1 className="text-xl font-bold tracking-tight">Wordle Dash</h1>
           </Link>
 
           <div className="flex items-center space-x-2 md:space-x-3">
@@ -43,8 +44,11 @@ export function Layout() {
               </Link>
             </Button>
 
-            {session && user ? (
-              <ProfileDropdown email={user.email!} />
+            {session ? (
+              <ProfileDropdown
+                id={session.user.id}
+                email={session.user.email!}
+              />
             ) : (
               <AuthModal />
             )}
@@ -57,17 +61,15 @@ export function Layout() {
   )
 }
 
-function ProfileDropdown({ email }: { email: string }) {
-  const 
+function ProfileDropdown({ id, email }: { id: string; email: string }) {
+  const profile = useQuery(supabase.from('profiles').select('*').eq('id', id))
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              LR
-              {/* {names ? `${names[0][0]}${names[1][0]}` : null} */}
-            </AvatarFallback>
+            <AvatarFallback>{profile.data![0].username![0]}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -75,8 +77,7 @@ function ProfileDropdown({ email }: { email: string }) {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {/* {userQuery?.data?.name} */}
-              Luke Rucker
+              {profile.data![0].username}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {email}

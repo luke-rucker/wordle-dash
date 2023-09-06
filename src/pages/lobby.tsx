@@ -80,14 +80,18 @@ export function Lobby() {
           </Button>
 
           <Button
-            onClick={() => {
-              navigator
-                .share({
-                  title: 'Word Dash',
-                  text: "You've been invited to play Word Dash. Think Wordle, but you race against other people.",
+            onClick={async () => {
+              try {
+                await navigator.share({
+                  title: 'Wordle Dash',
+                  text: "You've been invited to play Wordle Dash. Think Wordle, but you race against other people.",
                   url: window.location.href,
                 })
-                .catch(() => {})
+              } catch (err) {
+                await navigator.clipboard
+                  .writeText(`Play Wordle dash ${window.location.href}`)
+                  .catch(() => {})
+              }
             }}
           >
             <Icons.Share className="mr-2 w-4 h-4" />

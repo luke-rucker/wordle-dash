@@ -44,7 +44,7 @@ export function AuthModal() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Sign in to Word Dash</DialogTitle>
+          <DialogTitle>Sign in to Wordle Dash</DialogTitle>
           <DialogDescription>
             Users with an account can compete on the global leaderboard and view
             their previous matches.
