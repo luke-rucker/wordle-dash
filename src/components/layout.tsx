@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
-import { useSession } from '@supabase/auth-helpers-react'
+import { Session, useSession } from '@supabase/auth-helpers-react'
 import { Link, Outlet } from 'react-router-dom'
 
 export function Layout() {
@@ -44,14 +44,7 @@ export function Layout() {
               </Link>
             </Button>
 
-            {session ? (
-              <ProfileDropdown
-                id={session.user.id}
-                email={session.user.email!}
-              />
-            ) : (
-              <AuthModal />
-            )}
+            {session ? <ProfileDropdown session={session} /> : <AuthModal />}
           </div>
         </div>
       </header>
@@ -61,15 +54,26 @@ export function Layout() {
   )
 }
 
-function ProfileDropdown({ id, email }: { id: string; email: string }) {
-  const profile = useQuery(supabase.from('profiles').select('*').eq('id', id))
+function ProfileDropdown({ session }: { session: Session }) {
+  const profile = useQuery(
+    supabase.from('profiles').select('*').eq('id', session.user.id)
+  )
+
+  const initials = () => {
+    const fullName = session.user.user_metadata.full_name as string | undefined
+    if (fullName) {
+      const names = fullName.split(' ')
+      return `${names[0][0]} ${names[1][0]}`
+    }
+    return profile.data![0].username![0]
+  }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarFallback>{profile.data![0].username![0]}</AvatarFallback>
+            <AvatarFallback>{initials()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -80,7 +84,7 @@ function ProfileDropdown({ id, email }: { id: string; email: string }) {
               {profile.data![0].username}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {email}
+              {session.user.email}
             </p>
           </div>
         </DropdownMenuLabel>

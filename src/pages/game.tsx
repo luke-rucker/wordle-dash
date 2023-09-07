@@ -5,7 +5,6 @@ import type { SafeGameEvents, SafeGameResponses } from '@party/game'
 import * as React from 'react'
 import usePartySocket from 'partysocket/react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useUsername } from '@/stores/settings-store'
 import type {
   GameState,
   Guess,
@@ -16,6 +15,9 @@ import { Keyboard } from '@/components/keyboard'
 import type { LetterStatus } from '@party/lib/words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import { cn } from '@/lib/utils'
+import { useSession } from '@supabase/auth-helpers-react'
+import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
+import { supabase } from '@/lib/supabase'
 
 export function Game() {
   const navigate = useNavigate()
@@ -37,24 +39,30 @@ export function Game() {
 
   const { usePartyMessage, useSocketEvent } = createPartyHooks(client)
 
-  // React.useEffect(() => {
-  //   const interval = setInterval(() => client.send({ type: 'ping' }), 1000)
-  //   return () => clearInterval(interval)
-  // }, [client])
+  const session = useSession()
+  const profile = useQuery(
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session?.user.id as string),
+    { enabled: !!session }
+  )
 
-  const username = useUsername()
+  const username = () => {
+    if (profile.data && profile.data[0].username) {
+      return profile.data[0].username
+    } else {
+      return 'Ronnie 123'
+    }
+  }
 
   useSocketEvent('open', () => {
     client.send({
       type: 'whoami',
-      token: sessionStorage.getItem('token'),
-      username,
+      token: session?.access_token ?? sessionStorage.getItem('token'),
+      username: username(),
     })
   })
-
-  React.useEffect(() => {
-    client.send({ type: 'updateUsername', username })
-  }, [username, client])
 
   const [userId, setUserId] = React.useState<string | null>(null)
 

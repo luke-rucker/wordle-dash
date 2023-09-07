@@ -9,7 +9,6 @@ import {
   CardFooter,
 } from '@/components/ui/card'
 import { PARTY_KIT_HOST } from '@/constants'
-import { usePet } from '@/stores/settings-store'
 import { MAIN_LOBBY, LobbyMessage } from '@party/lobby'
 import usePartySocket from 'partysocket/react'
 import * as React from 'react'
@@ -31,7 +30,7 @@ export function Lobby() {
     },
   })
 
-  const pet = usePet()
+  const pet = 'dog'
 
   return (
     <div className="flex-grow flex flex-col items-center justify-center">
