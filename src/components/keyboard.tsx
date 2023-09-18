@@ -1,4 +1,5 @@
 import { Icons } from '@/components/icons'
+import { useGame } from '@/contexts/game-context'
 import { cn } from '@/lib/utils'
 import type { Guess } from '@party/lib/game'
 import type { LetterStatus } from '@party/lib/words/compare'
@@ -17,9 +18,12 @@ export function Keyboard({
   onLetter,
   guesses,
 }: KeyboardProps) {
+  const game = useGame()
+
   React.useEffect(() => {
     const handleKeyUp = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).nodeName === 'INPUT') return
+      if (game.gameOver) return
 
       if (e.code === 'Enter') {
         onEnter()
@@ -39,7 +43,7 @@ export function Keyboard({
     return () => {
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [onEnter, onDelete, onLetter])
+  }, [onEnter, onDelete, onLetter, game.gameOver])
 
   const weight = (status: LetterStatus) => {
     if (status === 'absent') return 0

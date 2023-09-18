@@ -4,9 +4,9 @@ import { createPartyHooks } from 'partyrpc/react'
 import type { SafeGameEvents, SafeGameResponses } from '@party/game'
 import * as React from 'react'
 import usePartySocket from 'partysocket/react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type {
-  FinishedState,
+  GameOverState,
   GameState,
   Guess,
   OtherPlayerState,
@@ -19,7 +19,17 @@ import { cn } from '@/lib/utils'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
-import { GameOverContext, GameOverValue } from '@/contexts/game-over-context'
+import { GameContext, useGame } from '@/contexts/game-context'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useUsernameStore } from '@/stores/username-store'
 
 export function Game() {
   const navigate = useNavigate()
@@ -50,17 +60,18 @@ export function Game() {
     { enabled: !!session }
   )
 
+  const anonUsername = useUsernameStore(state => state.username)
   const username = () => {
     if (profile.data && profile.data[0].username) {
       return profile.data[0].username
     } else {
-      return 'Ronnie 123'
+      return anonUsername
     }
   }
 
   useSocketEvent('open', () => {
     client.send({
-      type: 'whoami',
+      type: 'knockKnock',
       token: session?.access_token ?? sessionStorage.getItem('token'),
       username: username(),
     })
@@ -81,10 +92,13 @@ export function Game() {
   const [game, setGame] = React.useState<GameState>()
   usePartyMessage('tick', ({ game }) => setGame(game))
 
-  const [gameOver, setGameOver] = React.useState<GameOverValue | null>(null)
+  const [gameOver, setGameOver] = React.useState<{
+    state: GameOverState
+    game: Record<string, PlayerState>
+  }>()
   usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
 
-  if (!game || !game.others.length || !game.you) {
+  if (!game || !game.others.length || !game.you || !userId) {
     return <div className="container">Loading....</div>
   }
 
@@ -92,7 +106,9 @@ export function Game() {
   const other = others[0]
 
   return (
-    <GameOverContext.Provider value={gameOver}>
+    <GameContext.Provider value={{ userId, game, gameOver }}>
+      {gameOver ? <GameOverDialog /> : null}
+
       <div className="h-full py-4 flex flex-col items-center justify-between">
         <div className="container flex flex-col items-center space-y-2 md:hidden">
           <GamePreview {...other} />
@@ -113,17 +129,23 @@ export function Game() {
           onEnter={() => client.send({ type: 'submitGuess' })}
         />
       </div>
-    </GameOverContext.Provider>
+    </GameContext.Provider>
   )
 }
 
 type GameGridProps = PlayerState | OtherPlayerState
 
-function GamePreview({ username, guesses, currentGuess }: OtherPlayerState) {
+function GamePreview(player: OtherPlayerState) {
+  const game = useGame()
+
+  const currentGuess = game.gameOver
+    ? game.gameOver.game[player.id].currentGuess
+    : player.currentGuess
+
   return (
     <div className="space-y-2">
       <p>
-        {username}: {guesses.length} / {MAX_GUESSES}
+        {player.username}: {player.guesses.length} / {MAX_GUESSES}
       </p>
 
       <CurrentRow guess={currentGuess} />
@@ -131,8 +153,18 @@ function GamePreview({ username, guesses, currentGuess }: OtherPlayerState) {
   )
 }
 
-function GameGrid({ username, guesses, currentGuess }: GameGridProps) {
-  const isYou = typeof currentGuess === 'string'
+function GameGrid(player: GameGridProps) {
+  const game = useGame()
+
+  const isYou = game.userId === player.id
+
+  const guesses = game.gameOver
+    ? game.gameOver.game[player.id].guesses
+    : player.guesses
+
+  const currentGuess = game.gameOver
+    ? game.gameOver.game[player.id].currentGuess
+    : player.currentGuess
 
   const empties =
     guesses.length < MAX_GUESSES - 1
@@ -141,7 +173,7 @@ function GameGrid({ username, guesses, currentGuess }: GameGridProps) {
 
   return (
     <div className="space-y-1">
-      <p>{isYou ? 'You' : username}</p>
+      <p>{isYou ? 'You' : player.username}</p>
 
       {guesses.map((guess, index) => (
         <CompletedRow key={index} guess={guess} />
@@ -246,5 +278,55 @@ function EmptyRow() {
         <Cell key={i} />
       ))}
     </Row>
+  )
+}
+
+function GameOverDialog() {
+  const game = useGame()
+
+  if (!game.gameOver) {
+    return null
+  }
+
+  const gameOver = game.gameOver
+
+  const { title, description } = (() => {
+    if (gameOver?.state.playerId === game.userId) {
+      if (gameOver.state.type === 'win') {
+        return {
+          title: 'You won!',
+          description: 'Looking speedy over there...',
+        }
+      }
+      if (gameOver.state.type === 'outOfGuesses') {
+        return {
+          title: 'You lost :(',
+          description: 'You ran out guesses. Better luck next time ;)',
+        }
+      }
+    }
+
+    const winningPlayer = gameOver.game[gameOver.state.playerId]
+    return {
+      title: 'You lost :(',
+      description: `${winningPlayer.username} was a bit speedier this time. Better luck next time.`,
+    }
+  })()
+
+  return (
+    <AlertDialog>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogAction asChild>
+            <Link to="/">Play another</Link>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

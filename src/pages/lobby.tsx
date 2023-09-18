@@ -1,4 +1,8 @@
 import { Icons } from '@/components/icons'
+import {
+  AlertDialogHeader,
+  AlertDialogFooter,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -8,13 +12,114 @@ import {
   CardContent,
   CardFooter,
 } from '@/components/ui/card'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage,
+} from '@/components/ui/form'
 import { PARTY_KIT_HOST } from '@/constants'
+import { useUsernameStore } from '@/stores/username-store'
+import { valibotResolver } from '@hookform/resolvers/valibot'
 import { MAIN_LOBBY, LobbyMessage } from '@party/lobby'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
+import { useSession } from '@supabase/auth-helpers-react'
 import usePartySocket from 'partysocket/react'
 import * as React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { Form, Link, useNavigate } from 'react-router-dom'
+import { Output, maxLength, minLength, object, string } from 'valibot'
+import { Input } from '@/components/ui/input'
 
 export function Lobby() {
+  const [completedUsername, setCompletedUsername] = React.useState(false)
+  const session = useSession()
+
+  return session || completedUsername ? (
+    <WaitingRoom />
+  ) : (
+    <AnonUserDialog onComplete={() => setCompletedUsername(true)} />
+  )
+}
+
+const anonUserSchema = object({
+  username: string('A username is required', [
+    minLength(3, 'Needs to be at least 3 characters'),
+    maxLength(24, 'Cannot be more than 24 characters'),
+  ]),
+})
+
+type CompleteProfileData = Output<typeof anonUserSchema>
+
+function AnonUserDialog({ onComplete }: { onComplete: () => void }) {
+  const username = useUsernameStore(state => state.username)
+  const setUsername = useUsernameStore(state => state.setUsername)
+
+  const form = useForm<CompleteProfileData>({
+    resolver: valibotResolver(anonUserSchema),
+    values: {
+      username: username ?? '',
+    },
+  })
+
+  return (
+    <AlertDialog open>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Pick a username</AlertDialogTitle>
+          <AlertDialogDescription>
+            You need to pick a username. This is what you will be known by to
+            other users.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <Form {...form}>
+          <form
+            id="anonUser"
+            onSubmit={form.handleSubmit(data => {
+              setUsername(data.username)
+              onComplete()
+            })}
+            className="space-y-8"
+          >
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="wordle-speedster" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    This is your public display name.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+
+        <AlertDialogFooter>
+          <AlertDialogAction type="submit" form="anonUser">
+            Save
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+function WaitingRoom() {
   const navigate = useNavigate()
 
   usePartySocket({

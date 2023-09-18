@@ -42,7 +42,7 @@ export const safeGame = rpc.events({
       rpc.send(ws, { type: 'pong' })
     },
   },
-  whoami: {
+  knockKnock: {
     schema: object({
       token: nullable(string()),
       username: nullable(string()),

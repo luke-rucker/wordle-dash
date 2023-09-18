@@ -1,6 +1,6 @@
 import { randomSolution } from './words/solutions'
 import { type LetterStatus, compare } from './words/compare'
-import { SOLUTION_SIZE } from '@party/lib/constants'
+import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 
 export type Guess = { raw: string; computed: Array<LetterStatus> }
 
@@ -12,6 +12,7 @@ export type PlayerState = {
 }
 
 export type OtherPlayerState = {
+  id: string
   username: string | null
   guesses: Array<Array<LetterStatus>>
   currentGuess: number
@@ -101,7 +102,7 @@ export class Game {
   computeGameOver(): GameOverState | undefined {
     for (const playerId of Object.keys(this.players)) {
       const player = this.players[playerId]
-      if (player.guesses.length === 6) {
+      if (player.guesses.length === MAX_GUESSES) {
         return {
           type: 'outOfGuesses',
           playerId,
