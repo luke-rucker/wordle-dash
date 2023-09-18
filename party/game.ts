@@ -1,12 +1,9 @@
-import type { PartyConnection, Party, PartyKitServer } from 'partykit/server'
-import * as v from 'valibot'
+import type * as Party from 'partykit/server'
 import { createPartyRpc } from 'partyrpc/server'
 import { tokens } from './lib/tokens'
-import { Game, GameState } from './lib/game'
-
-type GameConnection = PartyConnection & {
-  userId?: string
-}
+import { GameOverState, Game, GameState } from './lib/game'
+import { nullable, object, optional, string, length } from 'valibot'
+import { attachments } from '@party/lib/attachments'
 
 type WelcomeResponse = {
   type: 'welcome'
@@ -16,7 +13,16 @@ type WelcomeResponse = {
 
 type FullGameResponse = { type: 'fullGame' }
 
-type TickResponse = { type: 'tick'; game: GameState }
+type TickResponse = {
+  type: 'tick'
+  game: GameState
+}
+
+type GameOverResponse = {
+  type: 'gameOver'
+  state: GameOverState
+  game: Game['players']
+}
 
 type PongResponse = { type: 'pong' }
 
@@ -25,22 +31,23 @@ type PartyResponses =
   | FullGameResponse
   | PongResponse
   | TickResponse
+  | GameOverResponse
 
 const rpc = createPartyRpc<PartyResponses, Game>()
 
 export const safeGame = rpc.events({
   ping: {
-    schema: v.optional(v.string()),
+    schema: optional(string()),
     onMessage(message, ws, party, game) {
       rpc.send(ws, { type: 'pong' })
     },
   },
   whoami: {
-    schema: v.object({
-      token: v.nullable(v.string()),
-      username: v.nullable(v.string()),
+    schema: object({
+      token: nullable(string()),
+      username: nullable(string()),
     }),
-    async onMessage(message, ws: GameConnection, party, game) {
+    async onMessage(message, ws, party, game) {
       let userId: string | null = null
       let token: string | undefined
 
@@ -61,63 +68,68 @@ export const safeGame = rpc.events({
         return rpc.send(ws, { type: 'fullGame' })
       }
 
-      ws.userId = userId
+      attachments.set(ws, { userId })
       game.addPlayer(userId, message.username)
       rpc.send(ws, {
         type: 'welcome',
         userId,
         token,
       })
-      broadcastGame({ game, party })
+      broadcastGame(game, party)
     },
   },
   updateUsername: {
-    schema: v.object({
-      username: v.nullable(v.string()),
+    schema: object({
+      username: nullable(string()),
     }),
-    onMessage(message, ws: GameConnection, party, game) {
-      if (!ws.userId) return
-      game.setUsername(ws.userId, message.username)
-      broadcastGame({ game, party })
+    onMessage(message, ws, party, game) {
+      const { userId } = attachments.get(ws)
+      if (!userId) return
+      game.setUsername(userId, message.username)
+      broadcastGame(game, party)
     },
   },
   typeGuess: {
-    schema: v.object({
-      guess: v.nullable(v.string([v.length(1)])),
+    schema: object({
+      guess: nullable(string([length(1)])),
     }),
-    onMessage(message, ws: GameConnection, party, game) {
-      if (!ws.userId) return
-      game.typeGuess(ws.userId, message.guess)
-      broadcastGame({ game, party })
+    onMessage(message, ws, party, game) {
+      const { userId } = attachments.get(ws)
+      if (!userId) return
+      game.typeGuess(userId, message.guess)
+      broadcastGame(game, party)
     },
   },
   submitGuess: {
-    schema: v.object({}),
-    onMessage(message, ws: GameConnection, party, game) {
-      if (!ws.userId) return
-      game.submitGuess(ws.userId)
-      broadcastGame({ game, party })
+    schema: object({}),
+    onMessage(message, ws, party, game) {
+      const { userId } = attachments.get(ws)
+      if (!userId) return
+
+      game.submitGuess(userId)
+      const gameOver = game.computeGameOver()
+
+      if (gameOver) {
+        rpc.broadcast(party, {
+          type: 'gameOver',
+          state: gameOver,
+          game: game.players,
+        })
+      } else {
+        broadcastGame(game, party)
+      }
     },
   },
 })
 
-function broadcastGame({
-  game,
-  party,
-  skip,
-}: {
-  game: Game
-  party: Party
-  skip?: string
-}) {
-  for (const conn of party.getConnections()) {
-    const ws = conn as GameConnection
-    if (!ws.userId || ws.userId === skip) return
-    const tick: TickResponse = {
+function broadcastGame(game: Game, party: Party.Party, skip?: string) {
+  for (const ws of party.getConnections()) {
+    const { userId } = attachments.get(ws)
+    if (!userId || userId === skip) return
+    rpc.send(ws, {
       type: 'tick',
-      game: game.stateForPlayer(ws.userId),
-    }
-    ws.send(JSON.stringify(tick))
+      game: game.stateForPlayer(userId),
+    })
   }
 }
 
@@ -126,17 +138,12 @@ export type SafeGameResponses = typeof safeGame.responses
 
 const game = new Game()
 
-export default {
-  async onConnect(ws: GameConnection, party) {
-    ws.addEventListener('close', () => {
-      if (ws.userId) {
-        game.setOnline(ws.userId, false)
-        broadcastGame({ game, party })
-      }
-    })
+export default class Server implements Party.PartyServer {
+  constructor(readonly party: Party.Party) {
+    this.party = party
+  }
 
-    ws.addEventListener('message', evt => {
-      safeGame.onMessage(evt.data, ws, party, game)
-    })
-  },
-} satisfies PartyKitServer
+  onMessage(message: string | ArrayBuffer, ws: Party.PartyConnection) {
+    safeGame.onMessage(message, ws, this.party, game)
+  }
+}

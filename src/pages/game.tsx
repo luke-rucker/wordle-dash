@@ -6,6 +6,7 @@ import * as React from 'react'
 import usePartySocket from 'partysocket/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type {
+  FinishedState,
   GameState,
   Guess,
   OtherPlayerState,
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
+import { GameOverContext, GameOverValue } from '@/contexts/game-over-context'
 
 export function Game() {
   const navigate = useNavigate()
@@ -64,8 +66,9 @@ export function Game() {
     })
   })
 
-  const [userId, setUserId] = React.useState<string | null>(null)
-
+  const [userId, setUserId] = React.useState<string | null>(
+    session?.user.id ?? null
+  )
   usePartyMessage('welcome', ({ token, userId }) => {
     setUserId(userId)
     if (token) sessionStorage.setItem('token', token)
@@ -76,8 +79,10 @@ export function Game() {
   })
 
   const [game, setGame] = React.useState<GameState>()
-
   usePartyMessage('tick', ({ game }) => setGame(game))
+
+  const [gameOver, setGameOver] = React.useState<GameOverValue | null>(null)
+  usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
 
   if (!game || !game.others.length || !game.you) {
     return <div className="container">Loading....</div>
@@ -87,37 +92,34 @@ export function Game() {
   const other = others[0]
 
   return (
-    <div className="h-full py-4 flex flex-col items-center justify-between">
-      <div className="container flex flex-col items-center space-y-2 md:hidden">
-        <GamePreview {...other} />
+    <GameOverContext.Provider value={gameOver}>
+      <div className="h-full py-4 flex flex-col items-center justify-between">
+        <div className="container flex flex-col items-center space-y-2 md:hidden">
+          <GamePreview {...other} />
 
-        <GameGrid {...you} />
+          <GameGrid {...you} />
+        </div>
+
+        <div className="container hidden md:flex gap-8 justify-center">
+          <GameGrid {...you} />
+
+          <GameGrid {...other} />
+        </div>
+
+        <Keyboard
+          guesses={you.guesses}
+          onLetter={letter => client.send({ type: 'typeGuess', guess: letter })}
+          onDelete={() => client.send({ type: 'typeGuess', guess: null })}
+          onEnter={() => client.send({ type: 'submitGuess' })}
+        />
       </div>
-
-      <div className="container hidden md:flex gap-8 justify-center">
-        <GameGrid {...you} />
-
-        <GameGrid {...other} />
-      </div>
-
-      <Keyboard
-        guesses={you.guesses}
-        onLetter={letter => client.send({ type: 'typeGuess', guess: letter })}
-        onDelete={() => client.send({ type: 'typeGuess', guess: null })}
-        onEnter={() => client.send({ type: 'submitGuess' })}
-      />
-    </div>
+    </GameOverContext.Provider>
   )
 }
 
 type GameGridProps = PlayerState | OtherPlayerState
 
-function GamePreview({
-  username,
-  online,
-  guesses,
-  currentGuess,
-}: OtherPlayerState) {
+function GamePreview({ username, guesses, currentGuess }: OtherPlayerState) {
   return (
     <div className="space-y-2">
       <p>
@@ -129,7 +131,7 @@ function GamePreview({
   )
 }
 
-function GameGrid({ username, online, guesses, currentGuess }: GameGridProps) {
+function GameGrid({ username, guesses, currentGuess }: GameGridProps) {
   const isYou = typeof currentGuess === 'string'
 
   const empties =
@@ -139,9 +141,7 @@ function GameGrid({ username, online, guesses, currentGuess }: GameGridProps) {
 
   return (
     <div className="space-y-1">
-      <p>
-        {isYou ? 'You' : username} - {online ? 'Online' : 'Offline'}
-      </p>
+      <p>{isYou ? 'You' : username}</p>
 
       {guesses.map((guess, index) => (
         <CompletedRow key={index} guess={guess} />
