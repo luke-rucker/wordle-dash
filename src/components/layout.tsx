@@ -1,24 +1,8 @@
-import { AuthModal } from '@/components/auth-modal'
 import { Icons } from '@/components/icons'
-import { ThemeSwitcher } from '@/components/theme-switcher'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { supabase } from '@/lib/supabase'
-import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
-import { Session, useSession } from '@supabase/auth-helpers-react'
 import { Link, Outlet } from 'react-router-dom'
 
 export function Layout() {
-  const session = useSession()
-
   return (
     <div className="h-full flex flex-col">
       <header className="border-b h-16">
@@ -32,75 +16,55 @@ export function Layout() {
               💨
             </div>
 
-            <h1 className="text-xl font-bold tracking-tight">Wordle Dash</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              Wordle Dash
+            </h1>
           </Link>
 
           <div className="flex items-center space-x-2 md:space-x-3">
-            <ThemeSwitcher />
-
             <Button asChild size="icon" variant="ghost">
               <Link to="/">
                 <Icons.Stats className="h-6 w-6" />
               </Link>
             </Button>
 
-            {session ? <ProfileDropdown session={session} /> : <AuthModal />}
+            <Button asChild size="icon" variant="ghost">
+              <Link to="settings">
+                <Icons.Settings className="h-6 w-6" />
+              </Link>
+            </Button>
+
+            <Button asChild size="icon" variant="ghost">
+              <Link to="/">
+                <Icons.Help className="h-6 w-6" />
+              </Link>
+            </Button>
           </div>
         </div>
       </header>
 
       <Outlet />
+
+      <footer className="py-4 mt-12 border-t">
+        <div className="container flex items-center justify-between text-muted-foreground">
+          © {new Date().getFullYear()} Wordle Dash
+          <ul className="flex items-center space-x-3">
+            <li>
+              <a href="mailto:hello@wordledash.com" className="hover:underline">
+                Feedback
+              </a>
+            </li>
+
+            <li role="separator">|</li>
+
+            <li>
+              <Link to="/privacy" className="hover:underline">
+                Privacy
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </footer>
     </div>
-  )
-}
-
-function ProfileDropdown({ session }: { session: Session }) {
-  const profile = useQuery(
-    supabase.from('profiles').select('*').eq('id', session.user.id)
-  )
-
-  const initials = () => {
-    const fullName = session.user.user_metadata.full_name as string | undefined
-    if (fullName) {
-      const names = fullName.split(' ')
-      return `${names[0][0]} ${names[1][0]}`
-    }
-    return profile.data![0].username![0]
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{initials()}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">
-              {profile.data![0].username}
-            </p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {session.user.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem>
-          <Icons.User className="h-4 w-4 mr-2" />
-          Profile
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
-          <Icons.LogOut className="h-4 w-4 mr-2" />
-          Log out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }

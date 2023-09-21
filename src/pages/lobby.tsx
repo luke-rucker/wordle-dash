@@ -19,6 +19,7 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
+  Form,
 } from '@/components/ui/form'
 import { PARTY_KIT_HOST } from '@/constants'
 import { useUsernameStore } from '@/stores/username-store'
@@ -35,7 +36,7 @@ import { useSession } from '@supabase/auth-helpers-react'
 import usePartySocket from 'partysocket/react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
-import { Form, Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Output, maxLength, minLength, object, string } from 'valibot'
 import { Input } from '@/components/ui/input'
 

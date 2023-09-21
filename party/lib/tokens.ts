@@ -1,38 +1,30 @@
 import { uid } from 'uid'
-import * as jose from 'jose'
+import jwt from '@tsndr/cloudflare-worker-jwt'
 
-const alg = 'HS256'
-const issuer = 'word-dash'
-const audience = 'word-dash'
-
-let secret: Uint8Array
-
-function getSecret(rawSecret: string) {
-  if (!secret) {
-    secret = new TextEncoder().encode(rawSecret)
-  }
-  return secret
-}
+const algorithm = 'HS256'
+const iss = 'word-dash'
+const aud = 'word-dash'
+const oneYear = 3.1536e10
 
 export const tokens = {
-  async issue(rawSecret: string) {
+  async issue(secret: string) {
     const userId = uid()
-    const token = await new jose.SignJWT({ sub: userId })
-      .setProtectedHeader({ alg })
-      .setIssuedAt()
-      .setIssuer(issuer)
-      .setAudience(audience)
-      .setExpirationTime('1yr')
-      .sign(getSecret(rawSecret))
+    const now = Date.now()
+    const token = await jwt.sign(
+      { sub: userId, iat: now, iss, aud, exp: now + oneYear },
+      secret,
+      { algorithm }
+    )
     return { userId, token }
   },
-  async verify(token: string, rawSecret: string) {
-    try {
-      const { payload } = await jose.jwtVerify(token, getSecret(rawSecret))
-      if (!payload.sub) return null
-      return payload.sub
-    } catch (err) {
-      return null
-    }
+  async verify(token: string, secret: string) {
+    const isValid = await jwt.verify(token, secret, { algorithm })
+    if (!isValid) return null
+    const { payload } = jwt.decode(token)
+    if (payload.aud !== aud) return null
+    if (payload.iss !== iss) return null
+    if (!payload.exp || payload.exp > Date.now()) return null
+    if (!payload.sub) return null
+    return payload.sub
   },
 }

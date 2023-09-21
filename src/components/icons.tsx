@@ -13,6 +13,8 @@ import {
   LogOut,
   User,
   BarChart3,
+  HelpCircle,
+  InfoIcon,
 } from 'lucide-react'
 
 export type Icon = LucideIcon
@@ -28,6 +30,8 @@ export const Icons = {
   LogIn,
   LogOut,
   User,
+  Help: HelpCircle,
+  Info: InfoIcon,
   Spinner: (props: LucideProps) => (
     <Loader2 {...props} className={cn('animate-spin', props.className)} />
   ),

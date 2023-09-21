@@ -9,6 +9,7 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { Toaster } from '@/components/ui/toaster'
 import { supabase } from '@/lib/supabase'
 import { EnsureProfile } from '@/components/ensure-profile'
+import { Settings } from '@/pages/settings'
 
 const queryClient = new QueryClient()
 
@@ -22,6 +23,7 @@ export function App() {
               <Routes>
                 <Route element={<Layout />}>
                   <Route index element={<Landing />} />
+                  <Route path="settings" element={<Settings />} />
                   <Route path="lobby" element={<Lobby />} />
                   <Route path="game/:gameId" element={<Game />} />
                 </Route>

@@ -14,7 +14,13 @@ import { type AuthError } from '@supabase/supabase-js'
 import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
 
-export function AuthModal() {
+export function AuthModal({
+  trigger,
+  variant = 'signIn',
+}: {
+  trigger: React.ReactNode
+  variant: 'signUp' | 'signIn'
+}) {
   const [open, setOpen] = React.useState(false)
 
   const { toast } = useToast()
@@ -37,17 +43,19 @@ export function AuthModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="icon" variant="ghost">
-          <Icons.LogIn className="w-6 h-6" />
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Sign in to Wordle Dash</DialogTitle>
+          <DialogTitle>
+            {variant === 'signIn'
+              ? 'Sign in to Wordle Dash'
+              : 'Sign up for Wordle Dash'}
+          </DialogTitle>
           <DialogDescription>
-            Users with an account can compete on the global leaderboard and view
-            their previous matches.
+            {variant === 'signIn'
+              ? 'Welcome back :)'
+              : 'Users with an account can save their stats across devices.'}
           </DialogDescription>
         </DialogHeader>
 
