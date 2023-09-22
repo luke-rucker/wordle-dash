@@ -9,7 +9,7 @@ export function EnsureProfile({ children }: { children: React.ReactNode }) {
   const profile = useQuery(
     supabase
       .from('profiles')
-      .select('*')
+      .select('username')
       .eq('id', auth.session?.user.id as string),
     { enabled: !!auth.session }
   )

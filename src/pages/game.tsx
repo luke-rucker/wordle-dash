@@ -55,7 +55,7 @@ export function Game() {
   const profile = useQuery(
     supabase
       .from('profiles')
-      .select('*')
+      .select('username')
       .eq('id', session?.user.id as string),
     { enabled: !!session }
   )

@@ -15,41 +15,36 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
+  Form,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/use-toast'
+import { ProfileData, profileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { useUpsertMutation } from '@supabase-cache-helpers/postgrest-react-query'
 import { useForm } from 'react-hook-form'
-import { Form } from 'react-router-dom'
-import { Output, maxLength, minLength, object, regex, string } from 'valibot'
-
-const completeProfileSchema = object({
-  username: string('A username is required', [
-    minLength(3, 'Needs to be at least 3 characters'),
-    maxLength(24, 'Cannot be more than 24 characters'),
-    regex(
-      /^[a-zA-Z0-9-_]+$/,
-      'Must only include letters, numbers, dashes, and underscores'
-    ),
-  ]),
-})
-
-type CompleteProfileData = Output<typeof completeProfileSchema>
 
 export function CompleteProfileModal({ userId }: { userId: string }) {
-  const form = useForm<CompleteProfileData>({
-    resolver: valibotResolver(completeProfileSchema),
+  const form = useForm<ProfileData>({
+    resolver: valibotResolver(profileSchema),
     values: {
       username: '',
     },
   })
+
+  const toaster = useToast()
 
   const updateProfile = useUpsertMutation(
     supabase.from('profiles'),
     ['id'],
     null,
     {
+      onSuccess: () => {
+        toaster.toast({
+          title: 'Updated your profile successfully.',
+        })
+      },
       onError: err => {
         form.setError(
           'username',

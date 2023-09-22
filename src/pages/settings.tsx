@@ -15,10 +15,16 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { useTheme } from '@/contexts/theme-context'
+import { ProfileData, profileSchema } from '@/lib/profiles'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { useUsernameStore } from '@/stores/username-store'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { LetterStatus } from '@party/lib/words/compare'
+import {
+  useQuery,
+  useUpsertMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useForm } from 'react-hook-form'
 import { Output, maxLength, minLength, object, string } from 'valibot'
@@ -44,7 +50,11 @@ export function Settings() {
           This is how other players will see you.
         </p>
 
-        {session ? <ProfileForm /> : <AnonProfileForm />}
+        {session ? (
+          <ProfileForm userId={session.user.id} />
+        ) : (
+          <AnonProfileForm />
+        )}
 
         <h3 className="text-lg font-medium mt-8">Theme</h3>
         <p className="text-sm text-muted-foreground mb-6">
@@ -98,6 +108,7 @@ function AnonProfileForm() {
             <div className="pt-2 flex items-center gap-2">
               <AuthModal
                 variant="signIn"
+                redirectTo="/settings"
                 trigger={
                   <Button className="flex-grow" type="button">
                     Sign In
@@ -107,6 +118,7 @@ function AnonProfileForm() {
 
               <AuthModal
                 variant="signUp"
+                redirectTo="/settings"
                 trigger={
                   <Button className="flex-grow" type="button">
                     Sign Up
@@ -140,8 +152,90 @@ function AnonProfileForm() {
   )
 }
 
-function ProfileForm() {
-  return null
+function ProfileForm({ userId }: { userId: string }) {
+  const profile = useQuery(
+    supabase.from('profiles').select('username').eq('id', userId)
+  )
+
+  const form = useForm<ProfileData>({
+    resolver: valibotResolver(profileSchema),
+    values: {
+      username: profile.data ? profile.data[0].username ?? '' : '',
+    },
+  })
+
+  const toaster = useToast()
+
+  const updateProfile = useUpsertMutation(
+    supabase.from('profiles'),
+    ['id'],
+    null,
+    {
+      onSuccess: () => {
+        toaster.toast({
+          title: 'Updated your profile successfully.',
+        })
+      },
+      onError: err => {
+        form.setError(
+          'username',
+          {
+            message:
+              err.code === '23505'
+                ? 'Username is already taken'
+                : 'Something went wrong!',
+          },
+          { shouldFocus: true }
+        )
+      },
+    }
+  )
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(data =>
+          updateProfile.mutate([{ ...data, id: userId }])
+        )}
+        className="space-y-8"
+      >
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <FormControl>
+                <Input placeholder="wordle-speedster" {...field} />
+              </FormControl>
+              <FormDescription>
+                This is your public display name.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex items-center space-x-4">
+          <Button type="submit" disabled={updateProfile.isLoading}>
+            {updateProfile.isLoading ? (
+              <Icons.Spinner className="mr-2 h-4 w-4" />
+            ) : null}
+            Save
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => supabase.auth.signOut()}
+          >
+            <Icons.LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </form>
+    </Form>
+  )
 }
 
 function ThemeSwitcher() {

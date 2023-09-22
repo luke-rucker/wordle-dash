@@ -20,7 +20,6 @@ import {
   SelectLabel,
   SelectItem,
 } from '@/components/ui/select'
-import { usePet, useSettingsStore, useUsername } from '@/stores/settings-store'
 import * as React from 'react'
 
 export function SettingsModal() {

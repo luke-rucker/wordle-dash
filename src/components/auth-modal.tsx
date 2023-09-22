@@ -17,9 +17,11 @@ import * as React from 'react'
 export function AuthModal({
   trigger,
   variant = 'signIn',
+  redirectTo,
 }: {
   trigger: React.ReactNode
   variant: 'signUp' | 'signIn'
+  redirectTo?: string
 }) {
   const [open, setOpen] = React.useState(false)
 
@@ -29,6 +31,11 @@ export function AuthModal({
     mutationFn: async () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: redirectTo
+            ? `${window.location.origin}${redirectTo}`
+            : undefined,
+        },
       })
       console.log({ error })
       if (error) throw error
