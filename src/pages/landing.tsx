@@ -424,13 +424,13 @@ function DashGame() {
 
   return (
     <div className="w-full flex justify-center space-x-2">
-      <GameBoard
+      <DashGameBoard
         player={1}
         gameOver={current === dashFrames.length - 1}
         rows={frame.one}
       />
 
-      <GameBoard
+      <DashGameBoard
         player={2}
         gameOver={current === dashFrames.length - 1}
         rows={frame.two}
@@ -446,17 +446,20 @@ function useFrame<Frames extends Array<DashFrame>>(frames: Frames) {
     let timeout: NodeJS.Timeout
 
     const tick = () => {
-      timeout = setTimeout(tick, randomInRange(200, 900))
-      setCurrent(current => {
-        console.log(current)
-        return current === frames.length - 1 ? 0 : current + 1
-      })
+      setCurrent(current => (current === frames.length - 1 ? 0 : current + 1))
+      timeout = setTimeout(
+        tick,
+        current === frames.length - 1 ? 2500 : randomInRange(200, 900)
+      )
     }
 
-    timeout = setTimeout(tick, randomInRange(200, 900))
+    timeout = setTimeout(
+      tick,
+      current === frames.length - 1 ? 2500 : randomInRange(200, 900)
+    )
 
     return () => clearTimeout(timeout)
-  }, [frames.length])
+  }, [frames.length, current])
 
   return current
 }
@@ -464,7 +467,7 @@ function useFrame<Frames extends Array<DashFrame>>(frames: Frames) {
 const randomInRange = (min: number, max: number) =>
   Math.random() * (max - min) + min
 
-function GameBoard({
+function DashGameBoard({
   rows,
   player,
   gameOver,
