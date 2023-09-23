@@ -2,7 +2,6 @@ import { AuthModal } from '@/components/auth-modal'
 import { Button } from '@/components/ui/button'
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -18,15 +17,25 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PARTY_KIT_HOST } from '@/constants'
 import { AnonProfileData, anonProfileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
+import { useTimer } from '@/lib/utils'
 import { useUsernameStore } from '@/stores/username-store'
 import { valibotResolver } from '@hookform/resolvers/valibot'
+import type { LobbyMessage } from '@party/lobby'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
+import usePartySocket from 'partysocket/react'
+import * as React from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
+
+type GameType = 'coop' | 'dash'
 
 export function Landing() {
+  const [waiting, setWaiting] = React.useState<GameType | null>(null)
+
   return (
     <main className="flex-grow flex flex-col items-center justify-center">
       <div className="w-full max-w-lg px-8 md:px-0">
@@ -43,7 +52,12 @@ export function Landing() {
 
         <p className="text-xl text-muted-foreground mb-7">Pick a game mode</p>
 
-        <Tabs defaultValue="coop">
+        <Tabs
+          defaultValue="coop"
+          onValueChange={tab => {
+            if (tab !== waiting) setWaiting(null)
+          }}
+        >
           <TabsList className="grid w-full grid-cols-2 h-fit">
             <TabsTrigger value="coop" className="flex flex-col">
               Co-Op <p className="text-xs">1034 Online</p>
@@ -64,11 +78,20 @@ export function Landing() {
 
               <CardFooter>
                 <EnsureUsername>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <Button className="w-full">Play</Button>
+                  {waiting === 'coop' ? (
+                    <Waiting lobby="coop" onCancel={() => setWaiting(null)} />
+                  ) : (
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <Button
+                        className="w-full"
+                        onClick={() => setWaiting('coop')}
+                      >
+                        Play
+                      </Button>
 
-                    <Button className="w-full">Invite a friend</Button>
-                  </div>
+                      <Button className="w-full">Invite a friend</Button>
+                    </div>
+                  )}
                 </EnsureUsername>
               </CardFooter>
             </Card>
@@ -85,11 +108,20 @@ export function Landing() {
 
               <CardFooter>
                 <EnsureUsername>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <Button className="w-full">Play</Button>
+                  {waiting === 'dash' ? (
+                    <Waiting lobby="dash" onCancel={() => setWaiting(null)} />
+                  ) : (
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <Button
+                        className="w-full"
+                        onClick={() => setWaiting('dash')}
+                      >
+                        Play
+                      </Button>
 
-                    <Button className="w-full">Invite a friend</Button>
-                  </div>
+                      <Button className="w-full">Invite a friend</Button>
+                    </div>
+                  )}
                 </EnsureUsername>
               </CardFooter>
             </Card>
@@ -97,6 +129,41 @@ export function Landing() {
         </Tabs>
       </div>
     </main>
+  )
+}
+
+function Waiting({
+  onCancel,
+  lobby,
+}: {
+  onCancel: () => void
+  lobby: GameType
+}) {
+  const navigate = useNavigate()
+
+  usePartySocket({
+    host: PARTY_KIT_HOST,
+    party: 'lobby',
+    room: lobby,
+    onMessage(event) {
+      const message = JSON.parse(event.data) as LobbyMessage
+
+      if (message.type === 'join') {
+        navigate(`/${lobby}/${message.game}`)
+      }
+    },
+  })
+
+  const timer = useTimer()
+
+  return (
+    <div>
+      <p>Waiting for a game - {timer}</p>
+
+      <Button className="mt-3 w-full" variant="outline" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
   )
 }
 

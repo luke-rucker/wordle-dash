@@ -255,7 +255,7 @@ function ThemeSwitcher() {
       <div>
         <button
           className={cn(
-            'grid grid-cols-5 gap-1 border-2 rounded p-2',
+            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-white border-white',
             theme.current === 'light' && 'border-primary'
           )}
           onClick={() => theme.set('light')}
@@ -273,7 +273,7 @@ function ThemeSwitcher() {
       <div>
         <button
           className={cn(
-            'grid grid-cols-5 gap-1 border-2 rounded p-2',
+            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-[#04080F] border-[#04080F]',
             theme.current === 'dark' && 'border-primary'
           )}
           onClick={() => theme.set('dark')}
@@ -296,8 +296,8 @@ function LightCell({ status }: { status: LetterStatus }) {
     <div
       className={cn('h-5 w-5', {
         'bg-gray-600': status === 'absent',
-        'bg-yellow-300': status === 'present',
-        'bg-green-600': status === 'correct',
+        'bg-yellow-400': status === 'present',
+        'bg-green-700': status === 'correct',
       })}
     />
   )

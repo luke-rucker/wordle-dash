@@ -1,15 +1,15 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Landing } from '@/pages/landing'
-import { Game } from '@/pages/game'
+import { DashGame } from '@/pages/dash-game'
 import { ThemeProvider } from '@/contexts/theme-context'
 import { Layout } from '@/components/layout'
-import { Lobby } from '@/pages/lobby'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { Toaster } from '@/components/ui/toaster'
 import { supabase } from '@/lib/supabase'
 import { EnsureProfile } from '@/components/ensure-profile'
 import { Settings } from '@/pages/settings'
+import { CoopGame } from '@/pages/coop-game'
 
 const queryClient = new QueryClient()
 
@@ -24,8 +24,8 @@ export function App() {
                 <Route element={<Layout />}>
                   <Route index element={<Landing />} />
                   <Route path="settings" element={<Settings />} />
-                  <Route path="lobby" element={<Lobby />} />
-                  <Route path="game/:gameId" element={<Game />} />
+                  <Route path="coop/:gameId" element={<CoopGame />} />
+                  <Route path="dash/:gameId" element={<DashGame />} />
                 </Route>
               </Routes>
               <Toaster />

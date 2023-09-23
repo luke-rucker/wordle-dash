@@ -1,7 +1,10 @@
-import type { GameState } from '@party/lib/game'
+import { GameContext } from '@/contexts/game-context'
+import * as React from 'react'
 
-export function createGameState(game: GameState, userId: string) {
-  return {
-    isFinished: () => {},
+export function useGame() {
+  const gameContext = React.useContext(GameContext)
+  if (!gameContext) {
+    throw new Error('useGame must be used within a GameContext.Provider')
   }
+  return gameContext
 }

@@ -1,7 +1,7 @@
 import type * as Party from 'partykit/server'
 import { createPartyRpc } from 'partyrpc/server'
 import { tokens } from './lib/tokens'
-import { GameOverState, Game, GameState } from './lib/game'
+import * as Dash from './lib/dash-game'
 import { nullable, object, optional, string, length } from 'valibot'
 import { attachments } from '@party/lib/attachments'
 
@@ -15,13 +15,13 @@ type FullGameResponse = { type: 'fullGame' }
 
 type TickResponse = {
   type: 'tick'
-  game: GameState
+  game: Dash.GameState
 }
 
 type GameOverResponse = {
   type: 'gameOver'
-  state: GameOverState
-  game: Game['players']
+  state: Dash.GameOverState
+  game: Dash.Game['players']
 }
 
 type PongResponse = { type: 'pong' }
@@ -33,7 +33,7 @@ type PartyResponses =
   | TickResponse
   | GameOverResponse
 
-const rpc = createPartyRpc<PartyResponses, Game>()
+const rpc = createPartyRpc<PartyResponses, Dash.Game>()
 
 export const safeGame = rpc.events({
   ping: {
@@ -58,7 +58,7 @@ export const safeGame = rpc.events({
         )
       }
 
-      if (message.token === null || userId === null) {
+      if (userId === null) {
         const newToken = await tokens.issue(party.env.JWT_SECRET as string)
         userId = newToken.userId
         token = newToken.token
@@ -122,7 +122,7 @@ export const safeGame = rpc.events({
   },
 })
 
-function broadcastGame(game: Game, party: Party.Party, skip?: string) {
+function broadcastGame(game: Dash.Game, party: Party.Party, skip?: string) {
   for (const ws of party.getConnections()) {
     const { userId } = attachments.get(ws)
     if (!userId || userId === skip) return
@@ -136,14 +136,18 @@ function broadcastGame(game: Game, party: Party.Party, skip?: string) {
 export type SafeGameEvents = typeof safeGame.events
 export type SafeGameResponses = typeof safeGame.responses
 
-const game = new Game()
-
 export default class Server implements Party.PartyServer {
+  private game?: Dash.Game
+
   constructor(readonly party: Party.Party) {
     this.party = party
   }
 
+  onStart() {
+    this.game = new Dash.Game()
+  }
+
   onMessage(message: string | ArrayBuffer, ws: Party.PartyConnection) {
-    safeGame.onMessage(message, ws, this.party, game)
+    safeGame.onMessage(message, ws, this.party, this.game!)
   }
 }

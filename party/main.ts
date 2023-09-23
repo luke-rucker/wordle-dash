@@ -1,7 +1,3 @@
-import type { PartyKitServer } from 'partykit/server'
+import type * as Party from 'partykit/server'
 
-export default {
-  onRequest(request, room) {
-    // TODO
-  },
-} satisfies PartyKitServer
+export default class Server implements Party.PartyKitServer {}

@@ -1,7 +1,7 @@
 import { PARTY_KIT_HOST } from '@/constants'
 import { createPartyClient } from 'partyrpc/client'
 import { createPartyHooks } from 'partyrpc/react'
-import type { SafeGameEvents, SafeGameResponses } from '@party/game'
+import type { SafeGameEvents, SafeGameResponses } from '@party/dash-game'
 import * as React from 'react'
 import usePartySocket from 'partysocket/react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -11,7 +11,7 @@ import type {
   Guess,
   OtherPlayerState,
   PlayerState,
-} from '@party/lib/game'
+} from '@party/lib/dash-game'
 import { Keyboard } from '@/components/keyboard'
 import type { LetterStatus } from '@party/lib/words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
@@ -19,25 +19,27 @@ import { cn } from '@/lib/utils'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
-import { GameContext, useGame } from '@/contexts/game-context'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { useUsernameStore } from '@/stores/username-store'
+import { GameContext } from '@/contexts/game-context'
 
-export function Game() {
+import { useUsernameStore } from '@/stores/username-store'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { useGame } from '@/lib/game'
+
+export function DashGame() {
   const navigate = useNavigate()
   const { gameId } = useParams()
 
   const socket = usePartySocket({
     host: PARTY_KIT_HOST,
-    party: 'game',
+    party: 'dashGame',
     room: gameId!,
   })
 
@@ -138,9 +140,23 @@ type GameGridProps = PlayerState | OtherPlayerState
 function GamePreview(player: OtherPlayerState) {
   const game = useGame()
 
-  const currentGuess = game.gameOver
-    ? game.gameOver.game[player.id].currentGuess
-    : player.currentGuess
+  const guess = (() => {
+    if (game.gameOver) {
+      const { game: finished } = game.gameOver
+      if (finished[player.id].guesses.length > 0) {
+        return finished[player.id].guesses[
+          finished[player.id].guesses.length - 1
+        ]
+      }
+      return finished[player.id].currentGuess
+    }
+
+    if (player.guesses.length > 0) {
+      return player.guesses[player.guesses.length - 1]
+    }
+
+    return player.currentGuess
+  })()
 
   return (
     <div className="space-y-2">
@@ -148,7 +164,11 @@ function GamePreview(player: OtherPlayerState) {
         {player.username}: {player.guesses.length} / {MAX_GUESSES}
       </p>
 
-      <CurrentRow guess={currentGuess} />
+      {typeof guess === 'string' || typeof guess === 'number' ? (
+        <CurrentRow guess={guess} />
+      ) : (
+        <CompletedRow guess={guess} />
+      )}
     </div>
   )
 }
@@ -211,11 +231,9 @@ function Cell({ status, hideLetter, letter }: CellProps) {
         'h-14 w-14 flex items-center justify-center border-2 text-4xl font-bold uppercase',
         {
           'border-primary': status === 'typed',
-          'bg-primary text-primary-foreground dark:bg-muted dark:text-white opacity-50 dark:opacity-100':
-            status === 'absent',
+          'border-gray-600 bg-gray-600 text-white': status === 'absent',
           'border-yellow-400 bg-yellow-400 text-white': status === 'present',
-          'border-green-600 bg-green-600 dark:border-green-800 dark:bg-green-800 text-white':
-            status === 'correct',
+          'border-green-700 bg-green-700 text-white': status === 'correct',
         }
       )}
     >
@@ -282,6 +300,8 @@ function EmptyRow() {
 }
 
 function GameOverDialog() {
+  const [open, setOpen] = React.useState(true)
+
   const game = useGame()
 
   if (!game.gameOver) {
@@ -314,19 +334,19 @@ function GameOverDialog() {
   })()
 
   return (
-    <AlertDialog>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
+    <Dialog open={open} onOpenChange={open => setOpen(open)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
-        <AlertDialogFooter>
-          <AlertDialogAction asChild>
+        <DialogFooter>
+          <Button asChild>
             <Link to="/">Play another</Link>
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

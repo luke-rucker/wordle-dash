@@ -1,17 +1,21 @@
-import type { PartyKitServer } from 'partykit/server'
+import type * as Party from 'partykit/server'
 import { uid } from 'uid/secure'
-
-export const MAIN_LOBBY = 'main'
 
 export type LobbyMessage = { type: 'join'; game: string }
 
-export default {
-  onConnect(ws, room) {
-    if (room.connections.size % 2 === 0) {
+export default class Server implements Party.PartyKitServer {
+  constructor(readonly party: Party.Party) {
+    this.party = party
+  }
+
+  onConnect() {
+    const connected = [...this.party.getConnections()].length
+
+    if (connected % 2 === 0) {
       const pairs = []
       let nextPair = []
 
-      for (const ws of room.connections.values()) {
+      for (const ws of this.party.getConnections()) {
         nextPair.push(ws)
 
         if (nextPair.length === 2) {
@@ -31,5 +35,5 @@ export default {
         }
       }
     }
-  },
-} satisfies PartyKitServer
+  }
+}

@@ -1,4 +1,8 @@
-import type { GameOverState, GameState, PlayerState } from '@party/lib/game'
+import type {
+  GameOverState,
+  GameState,
+  PlayerState,
+} from '@party/lib/dash-game'
 import * as React from 'react'
 
 export type GameValue = {
@@ -11,11 +15,3 @@ export type GameValue = {
 }
 
 export const GameContext = React.createContext<GameValue | null>(null)
-
-export function useGame() {
-  const gameContext = React.useContext(GameContext)
-  if (!gameContext) {
-    throw new Error('useGame must be used within a GameContext.Provider')
-  }
-  return gameContext
-}
