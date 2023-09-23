@@ -15,7 +15,6 @@ import type {
 import { Keyboard } from '@/components/keyboard'
 import type { LetterStatus } from '@party/lib/words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
-import { cn } from '@/lib/utils'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
@@ -32,6 +31,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useGame } from '@/lib/game'
+import { Cell } from '@/components/cell'
 
 export function DashGame() {
   const navigate = useNavigate()
@@ -216,30 +216,6 @@ type RowProps = {
 
 function Row({ children }: RowProps) {
   return <div className="flex gap-1">{children}</div>
-}
-
-type CellProps = {
-  status?: LetterStatus | 'typed'
-  hideLetter?: boolean
-  letter?: string
-}
-
-function Cell({ status, hideLetter, letter }: CellProps) {
-  return (
-    <div
-      className={cn(
-        'h-14 w-14 flex items-center justify-center border-2 text-4xl font-bold uppercase',
-        {
-          'border-primary': status === 'typed',
-          'border-gray-600 bg-gray-600 text-white': status === 'absent',
-          'border-yellow-400 bg-yellow-400 text-white': status === 'present',
-          'border-green-700 bg-green-700 text-white': status === 'correct',
-        }
-      )}
-    >
-      {hideLetter ? null : letter}
-    </div>
-  )
 }
 
 type CompletedRowProps = {

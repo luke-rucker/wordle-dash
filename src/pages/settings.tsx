@@ -1,4 +1,5 @@
 import { AuthModal } from '@/components/auth-modal'
+import { Cell } from '@/components/cell'
 import { Icons } from '@/components/icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -262,7 +263,11 @@ function ThemeSwitcher() {
         >
           {rows.flatMap((statuses, row) =>
             statuses.map((status, index) => (
-              <LightCell key={`${row}-${index}`} status={status} />
+              <Cell
+                key={`${row}-${index}`}
+                status={status}
+                className="h-5 w-5"
+              />
             ))
           )}
         </button>
@@ -280,7 +285,11 @@ function ThemeSwitcher() {
         >
           {rows.flatMap((statuses, row) =>
             statuses.map((status, index) => (
-              <LightCell key={`${row}-${index}`} status={status} />
+              <Cell
+                key={`${row}-${index}`}
+                status={status}
+                className="h-5 w-5 text-xs"
+              />
             ))
           )}
         </button>
@@ -288,17 +297,5 @@ function ThemeSwitcher() {
         <p className="text-center">Dark</p>
       </div>
     </div>
-  )
-}
-
-function LightCell({ status }: { status: LetterStatus }) {
-  return (
-    <div
-      className={cn('h-5 w-5', {
-        'bg-gray-600': status === 'absent',
-        'bg-yellow-400': status === 'present',
-        'bg-green-700': status === 'correct',
-      })}
-    />
   )
 }

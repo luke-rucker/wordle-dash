@@ -1,7 +1,9 @@
 import { AuthModal } from '@/components/auth-modal'
+import { Cell } from '@/components/cell'
 import { Button } from '@/components/ui/button'
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -20,9 +22,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PARTY_KIT_HOST } from '@/constants'
 import { AnonProfileData, anonProfileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
-import { useTimer } from '@/lib/utils'
+import { cn, useTimer } from '@/lib/utils'
 import { useUsernameStore } from '@/stores/username-store'
 import { valibotResolver } from '@hookform/resolvers/valibot'
+import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import type { LobbyMessage } from '@party/lobby'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
@@ -105,6 +108,10 @@ export function Landing() {
                   boards. Be careful not to run out of guesses.
                 </CardDescription>
               </CardHeader>
+
+              <CardContent>
+                <DashGame />
+              </CardContent>
 
               <CardFooter>
                 <EnsureUsername>
@@ -290,5 +297,220 @@ function AnonProfileForm() {
         </Button>
       </form>
     </Form>
+  )
+}
+
+type CharStatus = 'a' | 'c' | 'p' | undefined
+
+type GameRows = Array<Array<CharStatus>>
+
+type DashFrame = { one: GameRows; two: GameRows }
+
+const emptyRow: Array<CharStatus> = Array.from(Array(SOLUTION_SIZE))
+
+function board(rows?: GameRows) {
+  if (!rows) return [emptyRow, emptyRow, emptyRow, emptyRow, emptyRow, emptyRow]
+  const empties =
+    rows.length <= MAX_GUESSES
+      ? Array.from(Array(MAX_GUESSES - rows.length))
+      : []
+  return rows.concat(empties.fill(emptyRow))
+}
+
+const dashFrames: Array<DashFrame> = [
+  {
+    one: board(),
+    two: board(),
+  },
+  {
+    one: board([['a', 'a', 'c', 'p', 'a']]),
+    two: board(),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+    ]),
+    two: board([['c', 'a', 'a', 'p', 'a']]),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+    ]),
+    two: board([
+      ['c', 'a', 'a', 'p', 'a'],
+      ['c', 'p', 'a', 'a', 'a'],
+    ]),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+      ['p', 'p', 'c', 'a', 'a'],
+    ]),
+    two: board([
+      ['c', 'a', 'a', 'p', 'a'],
+      ['c', 'p', 'a', 'a', 'a'],
+      ['c', 'a', 'c', 'a', 'a'],
+    ]),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+      ['p', 'p', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'a'],
+    ]),
+    two: board([
+      ['c', 'a', 'a', 'p', 'a'],
+      ['c', 'p', 'a', 'a', 'a'],
+      ['c', 'a', 'c', 'a', 'a'],
+    ]),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+      ['p', 'p', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'c'],
+    ]),
+    two: board([
+      ['c', 'a', 'a', 'p', 'a'],
+      ['c', 'p', 'a', 'a', 'a'],
+      ['c', 'a', 'c', 'a', 'a'],
+      ['c', 'a', 'c', 'p', 'a'],
+    ]),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+      ['p', 'p', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'c'],
+    ]),
+    two: board([
+      ['c', 'a', 'a', 'p', 'a'],
+      ['c', 'p', 'a', 'a', 'a'],
+      ['c', 'a', 'c', 'a', 'a'],
+      ['c', 'a', 'c', 'p', 'a'],
+      ['c', 'a', 'c', 'p', 'c'],
+    ]),
+  },
+  {
+    one: board([
+      ['a', 'a', 'c', 'p', 'a'],
+      ['p', 'a', 'c', 'a', 'a'],
+      ['p', 'p', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'a'],
+      ['c', 'c', 'c', 'a', 'c'],
+      ['c', 'c', 'c', 'c', 'c'],
+    ]),
+    two: board([
+      ['c', 'a', 'a', 'p', 'a'],
+      ['c', 'p', 'a', 'a', 'a'],
+      ['c', 'a', 'c', 'a', 'a'],
+      ['c', 'a', 'c', 'p', 'a'],
+      ['c', 'a', 'c', 'p', 'c'],
+    ]),
+  },
+]
+
+function DashGame() {
+  const current = useFrame(dashFrames)
+  const frame = dashFrames[current]
+
+  return (
+    <div className="w-full flex justify-center space-x-2">
+      <GameBoard
+        player={1}
+        gameOver={current === dashFrames.length - 1}
+        rows={frame.one}
+      />
+
+      <GameBoard
+        player={2}
+        gameOver={current === dashFrames.length - 1}
+        rows={frame.two}
+      />
+    </div>
+  )
+}
+
+function useFrame<Frames extends Array<DashFrame>>(frames: Frames) {
+  const [current, setCurrent] = React.useState(0)
+
+  React.useEffect(() => {
+    let timeout: NodeJS.Timeout
+
+    const tick = () => {
+      timeout = setTimeout(tick, randomInRange(200, 900))
+      setCurrent(current => {
+        console.log(current)
+        return current === frames.length - 1 ? 0 : current + 1
+      })
+    }
+
+    timeout = setTimeout(tick, randomInRange(200, 900))
+
+    return () => clearTimeout(timeout)
+  }, [frames.length])
+
+  return current
+}
+
+const randomInRange = (min: number, max: number) =>
+  Math.random() * (max - min) + min
+
+function GameBoard({
+  rows,
+  player,
+  gameOver,
+}: {
+  rows: GameRows
+  player: 1 | 2
+  gameOver?: boolean
+}) {
+  const statusForChar = {
+    a: 'absent',
+    p: 'present',
+    c: 'correct',
+  } as const
+
+  const emoji = player === 1 ? '🏆' : '😔'
+
+  return (
+    <div className="p-3">
+      <p
+        className={cn(
+          'mb-2 text-center',
+          player === 1
+            ? 'text-blue-500 dark:text-blue-400'
+            : 'text-red-500 dark:text-red-400'
+        )}
+      >
+        {gameOver ? (
+          <>
+            {emoji} Player {player} {emoji}
+          </>
+        ) : (
+          <>Player {player}</>
+        )}
+      </p>
+
+      <div className="grid grid-cols-5 gap-1">
+        {rows.flatMap((statuses, row) =>
+          statuses.map((status, index) => (
+            <Cell
+              key={`${row}-${index}`}
+              status={status ? statusForChar[status] : undefined}
+              className="h-6 w-6 border-2"
+            />
+          ))
+        )}
+      </div>
+    </div>
   )
 }
