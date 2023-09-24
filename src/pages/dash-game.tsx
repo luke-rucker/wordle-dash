@@ -127,10 +127,11 @@ export function DashGame() {
         </div>
 
         <Keyboard
-          guesses={you.guesses}
           onLetter={letter => client.send({ type: 'typeGuess', guess: letter })}
           onDelete={() => client.send({ type: 'typeGuess', guess: null })}
           onEnter={() => client.send({ type: 'submitGuess' })}
+          guesses={you.guesses}
+          disabled={!!gameOver}
         />
       </div>
     </GameContext.Provider>
@@ -165,8 +166,9 @@ function GamePreview(player: OtherPlayerState) {
       <p>
         <span className="text-red-500 dark:text-red-400">
           {player.username}
-          {player.country ? ` ${getFlag(player.country)}` : null}:
-        </span>{' '}
+          {player.country ? ` ${getFlag(player.country)}` : null}
+        </span>
+        {' - Attempt '}
         {player.guesses.length} / {MAX_GUESSES}
       </p>
 
@@ -294,34 +296,39 @@ function EmptyRow() {
 function GameOverDialog() {
   const [open, setOpen] = React.useState(true)
 
-  const game = useGame()
+  const { gameOver, userId } = useGame()
 
-  if (!game.gameOver) {
+  if (!gameOver) {
     return null
   }
 
-  const gameOver = game.gameOver
-
   const { title, description } = (() => {
-    if (gameOver?.state.playerId === game.userId) {
-      if (gameOver.state.type === 'win') {
+    const winningPlayer = gameOver.game[gameOver.state.playerId]
+
+    if (gameOver?.state.type === 'win') {
+      if (gameOver?.state.playerId === userId) {
         return {
-          title: 'You won!',
+          title: 'You won! 🏆',
           description: 'Looking speedy over there...',
         }
-      }
-      if (gameOver.state.type === 'outOfGuesses') {
+      } else {
         return {
-          title: 'You lost :(',
-          description: 'You ran out guesses. Better luck next time ;)',
+          title: 'You lost 😔',
+          description: `${winningPlayer.username} was a bit speedier this time. Better luck next time.`,
         }
       }
-    }
-
-    const winningPlayer = gameOver.game[gameOver.state.playerId]
-    return {
-      title: 'You lost :(',
-      description: `${winningPlayer.username} was a bit speedier this time. Better luck next time.`,
+    } else {
+      if (gameOver?.state.playerId === userId) {
+        return {
+          title: 'You lost 😔',
+          description: 'You ran out guesses. Better luck next time.',
+        }
+      } else {
+        return {
+          title: 'You won! 🏆',
+          description: `${winningPlayer.username} ran out of guesses.`,
+        }
+      }
     }
   })()
 

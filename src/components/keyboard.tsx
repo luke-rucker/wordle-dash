@@ -1,5 +1,4 @@
 import { Icons } from '@/components/icons'
-import { useGame } from '@/lib/game'
 import { cn } from '@/lib/utils'
 import type { Guess } from '@party/lib/dash-game'
 import type { LetterStatus } from '@party/lib/words/compare'
@@ -10,6 +9,7 @@ type KeyboardProps = {
   onDelete: () => void
   onLetter: (letter: string) => void
   guesses: Array<Guess>
+  disabled?: boolean
 }
 
 export function Keyboard({
@@ -17,13 +17,12 @@ export function Keyboard({
   onDelete,
   onLetter,
   guesses,
+  disabled,
 }: KeyboardProps) {
-  const game = useGame()
-
   React.useEffect(() => {
     const handleKeyUp = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).nodeName === 'INPUT') return
-      if (game.gameOver) return
+      if (disabled) return
 
       if (e.code === 'Enter') {
         onEnter()
@@ -43,7 +42,7 @@ export function Keyboard({
     return () => {
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [onEnter, onDelete, onLetter, game.gameOver])
+  }, [onEnter, onDelete, onLetter, disabled])
 
   const weight = (status: LetterStatus) => {
     if (status === 'absent') return 0
@@ -64,6 +63,11 @@ export function Keyboard({
     {}
   )
 
+  const handleLetter = (letter: string) => {
+    if (disabled) return
+    onLetter(letter)
+  }
+
   return (
     <div className="pb-2 pt-8 px-1 md:px-0 space-y-2 w-full">
       <div className="flex justify-center gap-1 md:gap-2">
@@ -71,7 +75,7 @@ export function Keyboard({
           <Key
             key={letter}
             value={letter}
-            onClick={() => onLetter(letter)}
+            onClick={() => handleLetter(letter)}
             status={letterStatuses[letter]}
           />
         ))}
@@ -82,7 +86,7 @@ export function Keyboard({
           <Key
             key={letter}
             value={letter}
-            onClick={() => onLetter(letter)}
+            onClick={() => handleLetter(letter)}
             status={letterStatuses[letter]}
           />
         ))}
@@ -91,7 +95,10 @@ export function Keyboard({
       <div className="flex justify-center gap-1 md:gap-2">
         <Key
           value="ENTER"
-          onClick={onEnter}
+          onClick={() => {
+            if (disabled) return
+            onEnter()
+          }}
           className="text-xs md:text-md w-16 md:w-20"
         />
 
@@ -99,12 +106,19 @@ export function Keyboard({
           <Key
             key={letter}
             value={letter}
-            onClick={() => onLetter(letter)}
+            onClick={() => handleLetter(letter)}
             status={letterStatuses[letter]}
           />
         ))}
 
-        <Key value="DELETE" onClick={onDelete} className="w-16 md:w-20">
+        <Key
+          value="DELETE"
+          onClick={() => {
+            if (disabled) return
+            onDelete()
+          }}
+          className="w-16 md:w-20"
+        >
           <Icons.Backspace className="h-6 w-6" />
         </Key>
       </div>

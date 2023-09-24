@@ -45,7 +45,7 @@ export function Layout() {
 
       <Outlet />
 
-      <footer className="py-4 mt-12 border-t">
+      <footer className="py-4 mt-4 border-t">
         <div className="container flex items-center justify-between text-muted-foreground">
           © {new Date().getFullYear()} Wordle Dash
           <ul className="flex items-center space-x-3">

@@ -4,6 +4,7 @@ import { tokens } from './lib/tokens'
 import * as Dash from './lib/dash-game'
 import { nullable, object, optional, string, length } from 'valibot'
 import { attachments } from '@party/lib/attachments'
+import { SOLUTION_SIZE } from '@party/lib/constants'
 
 type WelcomeResponse = {
   type: 'welcome'
@@ -75,7 +76,17 @@ export const safeGame = rpc.events({
         userId,
         token,
       })
+
       broadcastGame(game, party)
+
+      const gameOver = game.computeGameOver()
+      if (gameOver) {
+        rpc.broadcast(party, {
+          type: 'gameOver',
+          state: gameOver,
+          game: game.players,
+        })
+      }
     },
   },
   typeGuess: {
@@ -85,6 +96,11 @@ export const safeGame = rpc.events({
     onMessage(message, ws, party, game) {
       const { userId } = attachments.get(ws)
       if (!userId) return
+      if (
+        game.players[userId].currentGuess.length === SOLUTION_SIZE &&
+        message.guess !== null
+      )
+        return
       game.typeGuess(userId, message.guess)
       broadcastGame(game, party)
     },
@@ -94,6 +110,8 @@ export const safeGame = rpc.events({
     onMessage(message, ws, party, game) {
       const { userId } = attachments.get(ws)
       if (!userId) return
+
+      if (game.players[userId].currentGuess.length !== SOLUTION_SIZE) return
 
       game.submitGuess(userId)
       const gameOver = game.computeGameOver()
@@ -114,7 +132,6 @@ export const safeGame = rpc.events({
 function broadcastGame(game: Dash.Game, party: Party.Party, skip?: string) {
   for (const ws of party.getConnections()) {
     const { userId } = attachments.get(ws)
-    console.log(userId)
     if (!userId || userId === skip) return
     rpc.send(ws, {
       type: 'tick',
