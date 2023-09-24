@@ -20,26 +20,25 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PARTY_KIT_HOST } from '@/constants'
+import { Waiting } from '@/components/waiting'
 import { AnonProfileData, anonProfileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
-import { cn, useTimer } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { useUsernameStore } from '@/stores/username-store'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import { LetterStatus } from '@party/lib/words/compare'
-import type { LobbyMessage } from '@party/lobby'
+import type { GameType } from '@party/lobby'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
-import usePartySocket from 'partysocket/react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
-type GameType = 'coop' | 'dash'
-
 export function Landing() {
   const [waiting, setWaiting] = React.useState<GameType | null>(null)
+
+  const navigate = useNavigate()
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center">
@@ -90,7 +89,11 @@ export function Landing() {
               <CardFooter>
                 <EnsureUsername>
                   {waiting === 'coop' ? (
-                    <Waiting lobby="coop" onCancel={() => setWaiting(null)} />
+                    <Waiting
+                      lobby="coop"
+                      onJoin={gameUrl => navigate(gameUrl)}
+                      onCancel={() => setWaiting(null)}
+                    />
                   ) : (
                     <div className="flex flex-col md:flex-row gap-4">
                       <Button
@@ -124,7 +127,11 @@ export function Landing() {
               <CardFooter>
                 <EnsureUsername>
                   {waiting === 'dash' ? (
-                    <Waiting lobby="dash" onCancel={() => setWaiting(null)} />
+                    <Waiting
+                      lobby="dash"
+                      onJoin={gameUrl => navigate(gameUrl)}
+                      onCancel={() => setWaiting(null)}
+                    />
                   ) : (
                     <div className="flex flex-col md:flex-row gap-4">
                       <Button
@@ -144,41 +151,6 @@ export function Landing() {
         </Tabs>
       </div>
     </main>
-  )
-}
-
-function Waiting({
-  onCancel,
-  lobby,
-}: {
-  onCancel: () => void
-  lobby: GameType
-}) {
-  const navigate = useNavigate()
-
-  usePartySocket({
-    host: PARTY_KIT_HOST,
-    party: 'lobby',
-    room: lobby,
-    onMessage(event) {
-      const message = JSON.parse(event.data) as LobbyMessage
-
-      if (message.type === 'join') {
-        navigate(`/${lobby}/${message.game}`)
-      }
-    },
-  })
-
-  const timer = useTimer()
-
-  return (
-    <div>
-      <p>Waiting for a game - {timer}</p>
-
-      <Button className="mt-3 w-full" variant="outline" onClick={onCancel}>
-        Cancel
-      </Button>
-    </div>
   )
 }
 

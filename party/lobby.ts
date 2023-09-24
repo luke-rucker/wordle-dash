@@ -3,6 +3,8 @@ import { uid } from 'uid/secure'
 
 export type LobbyMessage = { type: 'join'; game: string }
 
+export type GameType = 'coop' | 'dash'
+
 export default class Server implements Party.PartyKitServer {
   constructor(readonly party: Party.Party) {
     this.party = party

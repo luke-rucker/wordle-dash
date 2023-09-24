@@ -4,7 +4,7 @@ import { createPartyHooks } from 'partyrpc/react'
 import type { SafeGameEvents, SafeGameResponses } from '@party/dash-game'
 import * as React from 'react'
 import usePartySocket from 'partysocket/react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import type {
   GameOverState,
   GameState,
@@ -32,11 +32,14 @@ import { Button } from '@/components/ui/button'
 import { useGame } from '@/lib/game'
 import { Cell } from '@/components/cell'
 import { cn, getFlag, useCountdown } from '@/lib/utils'
+import { Waiting } from '@/components/waiting'
 
 export function DashGame() {
   const navigate = useNavigate()
   const { gameId } = useParams()
+  console.log(gameId)
 
+  // TODO: figure out how to get socket to reconnect when gameId changes
   const socket = usePartySocket({
     host: PARTY_KIT_HOST,
     party: 'dashGame',
@@ -305,6 +308,9 @@ function EmptyRow() {
 
 function GameOverDialog() {
   const [open, setOpen] = React.useState(true)
+  const [waiting, setWaiting] = React.useState(false)
+
+  const navigate = useNavigate()
 
   const { gameOver, userId } = useGame()
 
@@ -371,9 +377,20 @@ function GameOverDialog() {
         </DialogHeader>
 
         <DialogFooter>
-          <Button asChild>
-            <Link to="/">Play another</Link>
-          </Button>
+          {waiting ? (
+            <Waiting
+              lobby="dash"
+              onJoin={gameUrl => {
+                navigate(gameUrl)
+                setOpen(false)
+              }}
+              onCancel={() => setWaiting(false)}
+            />
+          ) : (
+            <Button className="w-full" onClick={() => setWaiting(true)}>
+              Play another
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
