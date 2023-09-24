@@ -1,5 +1,6 @@
 import { AuthModal } from '@/components/auth-modal'
 import { Cell } from '@/components/cell'
+import { GoogleButton } from '@/components/google-button'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -41,19 +42,21 @@ export function Landing() {
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center">
-      <div className="w-full max-w-lg px-8 md:px-0">
-        <h2 className="mb-5 text-5xl font-semibold tracking-tight">
+      <div className="w-full max-w-lg px-8 md:px-0 py-6 md:py-0">
+        <h2 className="mb-0.5 md:mb-5 text-2xl md:text-5xl font-bold md:font-semibold tracking-tight">
           <span
             role="img"
             aria-label="dashing away"
-            className=" inline-block rotate-180 text-5xl leading-none"
+            className=" inline-block rotate-180 text-2xl md:text-5xl leading-none"
           >
             💨
           </span>
           Wordle Dash
         </h2>
 
-        <p className="text-xl text-muted-foreground mb-7">Pick a game mode</p>
+        <p className="text-base md:text-xl text-muted-foreground mb-7">
+          Pick a game mode
+        </p>
 
         <Tabs
           defaultValue="coop"
@@ -237,16 +240,7 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
         When you play with an account you can save the stats of your games.
       </p>
 
-      <div className="flex items-center space-x-2">
-        <AuthModal
-          variant="signIn"
-          trigger={<Button className="w-full">Sign In</Button>}
-        />
-        <AuthModal
-          variant="signUp"
-          trigger={<Button className="w-full">Sign Up</Button>}
-        />
-      </div>
+      <GoogleButton />
 
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
@@ -433,7 +427,7 @@ function DashGame() {
   const frame = dashFrames[current]
 
   return (
-    <div className="w-full flex justify-center space-x-2">
+    <div className="w-full flex justify-around md:justify-center md:space-x-2">
       <DashGameBoard
         player={1}
         gameOver={current === dashFrames.length - 1}
@@ -459,20 +453,20 @@ function DashGameBoard({
   gameOver?: boolean
 }) {
   return (
-    <div className="p-3">
+    <div className="py-3 md:px-3">
       <Player
         player={player}
         gameOver={gameOver}
         className="mb-2 text-center"
       />
 
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-5 gap-0.5 md:gap-1">
         {rows.flatMap((statuses, row) =>
           statuses.map((status, index) => (
             <Cell
               key={`${row}-${index}`}
               status={status ? statusForChar[status] : undefined}
-              className="h-6 w-6 border-2"
+              className="h-4 md:h-6 w-4 md:w-6 border-2"
             />
           ))
         )}
@@ -571,13 +565,15 @@ function Player({
         player === 1
           ? 'text-blue-500 dark:text-blue-400'
           : 'text-red-500 dark:text-red-400',
+        'text-sm md:text-base',
         className
       )}
     >
       {gameOver ? (
         <span className="relative">
-          <span className="absolute -left-6">{emoji}</span> Player {player}{' '}
-          <span className="absolute -right-6">{emoji}</span>
+          <span className="absolute -left-5 md:-left-6">{emoji}</span> Player{' '}
+          {player}{' '}
+          <span className="absolute -right-5 md:-right-6">{emoji}</span>
         </span>
       ) : (
         <>Player {player}</>

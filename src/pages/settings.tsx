@@ -1,5 +1,5 @@
-import { AuthModal } from '@/components/auth-modal'
 import { Cell } from '@/components/cell'
+import { GoogleButton } from '@/components/google-button'
 import { Icons } from '@/components/icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -34,7 +34,7 @@ export function Settings() {
   const session = useSession()
 
   return (
-    <div className="container py-12">
+    <div className="container py-6 md:py-12">
       <div className="space-y-0.5">
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
 
@@ -106,27 +106,7 @@ function AnonProfileForm() {
           <AlertDescription>
             You can sign into or create your account and save your stats across
             devices.
-            <div className="pt-2 flex items-center gap-2">
-              <AuthModal
-                variant="signIn"
-                redirectTo="/settings"
-                trigger={
-                  <Button className="flex-grow" type="button">
-                    Sign In
-                  </Button>
-                }
-              />
-
-              <AuthModal
-                variant="signUp"
-                redirectTo="/settings"
-                trigger={
-                  <Button className="flex-grow" type="button">
-                    Sign Up
-                  </Button>
-                }
-              />
-            </div>
+            <GoogleButton redirectTo="/settings" className="mt-2" />
           </AlertDescription>
         </Alert>
 
