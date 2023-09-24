@@ -45,8 +45,8 @@ export function Keyboard({
   }, [onEnter, onDelete, onLetter, disabled])
 
   const weight = (status: LetterStatus) => {
-    if (status === 'absent') return 0
-    if (status === 'present') return 1
+    if (status === 'a') return 0
+    if (status === 'p') return 1
     return 2
   }
 
@@ -143,9 +143,9 @@ function Key({ children, value, onClick, status, className }: KeyProps) {
         'h-14 w-10 md:h-16 md:w-12 flex items-center justify-center uppercase text-sm md:text-xl rounded font-bold focus:outline-none select-none',
         {
           'bg-secondary text-secondary-foreground': !status,
-          'bg-gray-600 text-white': status === 'absent',
-          'bg-yellow-400 text-white': status === 'present',
-          'bg-green-700 text-white': status === 'correct',
+          'bg-gray-600 text-white': status === 'a',
+          'bg-yellow-400 text-white': status === 'p',
+          'bg-green-700 text-white': status === 'c',
         },
         className
       )}

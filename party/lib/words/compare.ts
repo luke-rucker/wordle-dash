@@ -1,4 +1,4 @@
-export type LetterStatus = 'absent' | 'present' | 'correct'
+export type LetterStatus = 'a' | 'p' | 'c'
 
 export function compare(guess: string, solution: string): Array<LetterStatus> {
   const splitGuess = guess.split('')
@@ -9,7 +9,7 @@ export function compare(guess: string, solution: string): Array<LetterStatus> {
 
   splitGuess.forEach((letter, i) => {
     if (letter === splitSolution[i]) {
-      statuses[i] = 'correct'
+      statuses[i] = 'c'
       solutionLettersAlreadyTaken[i] = true
     }
   })
@@ -18,7 +18,7 @@ export function compare(guess: string, solution: string): Array<LetterStatus> {
     if (statuses[i]) return
 
     if (!splitSolution.includes(letter)) {
-      statuses[i] = 'absent'
+      statuses[i] = 'a'
       return
     }
 
@@ -28,10 +28,10 @@ export function compare(guess: string, solution: string): Array<LetterStatus> {
     )
 
     if (indexOfPresentLetter > -1) {
-      statuses[i] = 'present'
+      statuses[i] = 'p'
       solutionLettersAlreadyTaken[indexOfPresentLetter] = true
     } else {
-      statuses[i] = 'absent'
+      statuses[i] = 'a'
     }
   })
 

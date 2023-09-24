@@ -27,6 +27,7 @@ import { cn, useTimer } from '@/lib/utils'
 import { useUsernameStore } from '@/stores/username-store'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
+import { LetterStatus } from '@party/lib/words/compare'
 import type { LobbyMessage } from '@party/lobby'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
@@ -298,19 +299,13 @@ function AnonProfileForm() {
   )
 }
 
-type CharStatus = 'a' | 'c' | 'p' | undefined
-
-const statusForChar = {
-  a: 'absent',
-  p: 'present',
-  c: 'correct',
-} as const
-
-type GameRows = Array<Array<CharStatus>>
+type GameRows = Array<Array<LetterStatus | undefined>>
 
 type DashFrame = { one: GameRows; two: GameRows }
 
-const emptyRow: Array<CharStatus> = Array.from(Array(SOLUTION_SIZE))
+const emptyRow: Array<LetterStatus | undefined> = Array.from(
+  Array(SOLUTION_SIZE)
+)
 
 function board(rows?: GameRows) {
   if (!rows) return [emptyRow, emptyRow, emptyRow, emptyRow, emptyRow, emptyRow]
@@ -465,7 +460,7 @@ function DashGameBoard({
           statuses.map((status, index) => (
             <Cell
               key={`${row}-${index}`}
-              status={status ? statusForChar[status] : undefined}
+              status={status}
               className="h-4 md:h-6 w-4 md:w-6 border-2"
             />
           ))
@@ -538,7 +533,7 @@ function CoopGame() {
           statuses.map((status, index) => (
             <Cell
               key={`${row}-${index}`}
-              status={status ? statusForChar[status] : undefined}
+              status={status}
               className="h-6 w-6 border-2"
             />
           ))

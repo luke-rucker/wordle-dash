@@ -110,7 +110,7 @@ export class Game {
 
       if (
         player.guesses.find(guess =>
-          guess.computed.every(status => status === 'correct')
+          guess.computed.every(status => status === 'c')
         )
       ) {
         return {

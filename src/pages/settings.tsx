@@ -221,12 +221,12 @@ function ProfileForm({ userId }: { userId: string }) {
 
 function ThemeSwitcher() {
   const rows: Array<Array<LetterStatus>> = [
-    ['absent', 'absent', 'correct', 'present', 'absent'],
-    ['present', 'absent', 'correct', 'absent', 'absent'],
-    ['present', 'present', 'correct', 'absent', 'absent'],
-    ['correct', 'present', 'correct', 'absent', 'absent'],
-    ['correct', 'absent', 'correct', 'correct', 'absent'],
-    ['correct', 'correct', 'correct', 'correct', 'correct'],
+    ['a', 'a', 'c', 'p', 'a'],
+    ['p', 'a', 'c', 'a', 'a'],
+    ['p', 'p', 'c', 'a', 'a'],
+    ['c', 'p', 'c', 'a', 'a'],
+    ['c', 'a', 'c', 'c', 'a'],
+    ['c', 'c', 'c', 'c', 'c'],
   ]
 
   const theme = useTheme()

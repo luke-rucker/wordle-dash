@@ -15,9 +15,9 @@ export function Cell({ status, hideLetter, letter, className }: CellProps) {
         'h-14 w-14 flex items-center justify-center border-2 text-4xl font-bold uppercase',
         {
           'border-primary': status === 'typed',
-          'border-gray-600 bg-gray-600 text-white': status === 'absent',
-          'border-yellow-400 bg-yellow-400 text-white': status === 'present',
-          'border-green-700 bg-green-700 text-white': status === 'correct',
+          'border-gray-600 bg-gray-600 text-white': status === 'a',
+          'border-yellow-400 bg-yellow-400 text-white': status === 'p',
+          'border-green-700 bg-green-700 text-white': status === 'c',
         },
         className
       )}
