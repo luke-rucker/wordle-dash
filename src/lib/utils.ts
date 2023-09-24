@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { useInterval } from 'usehooks-ts'
 import * as React from 'react'
 
 export function cn(...inputs: ClassValue[]) {
@@ -9,11 +10,30 @@ export function cn(...inputs: ClassValue[]) {
 export function useTimer() {
   const [seconds, setSeconds] = React.useState(0)
 
-  React.useEffect(() => {
-    const interval = setInterval(() => setSeconds(seconds => seconds + 1), 1000)
-    return () => clearInterval(interval)
-  }, [])
+  useInterval(() => setSeconds(seconds => seconds + 1), 1000)
 
+  return formatSeconds(seconds)
+}
+
+export function useCountdown(to: number, stopped?: boolean) {
+  const [seconds, setSeconds] = React.useState(
+    Math.ceil((to - Date.now()) / 1000)
+  )
+
+  React.useEffect(() => setSeconds(Math.ceil((to - Date.now()) / 1000)), [to])
+
+  useInterval(
+    () => {
+      if (seconds <= 0) return
+      setSeconds(Math.ceil((to - Date.now()) / 1000))
+    },
+    seconds <= 0 || stopped ? 0 : 1000
+  )
+
+  return formatSeconds(seconds)
+}
+
+function formatSeconds(seconds: number) {
   const date = new Date(0)
   date.setSeconds(seconds)
 

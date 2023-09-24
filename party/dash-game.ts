@@ -2,7 +2,7 @@ import type * as Party from 'partykit/server'
 import { createPartyRpc } from 'partyrpc/server'
 import { tokens } from './lib/tokens'
 import * as Dash from './lib/dash-game'
-import { nullable, object, optional, string, length } from 'valibot'
+import { nullable, object, string, length } from 'valibot'
 import { attachments } from '@party/lib/attachments'
 import { SOLUTION_SIZE } from '@party/lib/constants'
 
@@ -37,12 +37,6 @@ type PartyResponses =
 const rpc = createPartyRpc<PartyResponses, Dash.Game>()
 
 export const safeGame = rpc.events({
-  ping: {
-    schema: optional(string()),
-    onMessage(message, ws, party, game) {
-      rpc.send(ws, { type: 'pong' })
-    },
-  },
   knockKnock: {
     schema: object({
       token: nullable(string()),
@@ -79,11 +73,10 @@ export const safeGame = rpc.events({
 
       broadcastGame(game, party)
 
-      const gameOver = game.computeGameOver()
-      if (gameOver) {
+      if (game.isGameOver()) {
         rpc.broadcast(party, {
           type: 'gameOver',
-          state: gameOver,
+          state: game.gameOver!,
           game: game.players,
         })
       }
@@ -114,15 +107,8 @@ export const safeGame = rpc.events({
       if (game.players[userId].currentGuess.length !== SOLUTION_SIZE) return
 
       game.submitGuess(userId)
-      const gameOver = game.computeGameOver()
 
-      if (gameOver) {
-        rpc.broadcast(party, {
-          type: 'gameOver',
-          state: gameOver,
-          game: game.players,
-        })
-      } else {
+      if (!game.isGameOver()) {
         broadcastGame(game, party)
       }
     },
@@ -151,7 +137,16 @@ export default class Server implements Party.PartyServer {
   }
 
   onStart() {
-    this.game = new Dash.Game()
+    this.game = new Dash.Game({
+      onGameOver: () => {
+        if (!this.game || !this.game.gameOver) return
+        rpc.broadcast(this.party, {
+          type: 'gameOver',
+          state: this.game.gameOver,
+          game: this.game.players,
+        })
+      },
+    })
   }
 
   onConnect(ws: Party.PartyConnection, ctx: Party.PartyConnectionContext) {

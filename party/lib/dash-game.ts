@@ -8,6 +8,7 @@ export type PlayerState = {
   id: string
   username: string
   country: string | null
+  guessBy?: number
   guesses: Array<Guess>
   currentGuess: string
 }
@@ -16,6 +17,7 @@ export type OtherPlayerState = {
   id: string
   username: string
   country: string | null
+  guessBy?: number
   guesses: Array<Array<LetterStatus>>
   currentGuess: number
 }
@@ -25,29 +27,65 @@ export type GameState = {
   others: Array<OtherPlayerState>
 }
 
-export type GameOverState = {
-  type: 'win' | 'outOfGuesses'
-  playerId: string
-}
+export type GameOverState =
+  | {
+      type: 'win' | 'outOfGuesses' | 'timeLimit'
+      playerId: string
+    }
+  | { type: 'noGuesses' }
+
+type TimeToGuess = 30 | 60
 
 export class Game {
-  solution = randomSolution()
+  timeToGuess?: TimeToGuess
 
-  players: Record<string, PlayerState> = {}
+  solution: string
 
   maxPlayers = 2
+
+  players: Record<string, PlayerState>
+
+  timers: Record<string, NodeJS.Timeout>
+
+  gameOver?: GameOverState
+
+  onGameOver?: () => void
+
+  constructor(options?: {
+    timeToGuess?: TimeToGuess
+    onGameOver?: () => void
+  }) {
+    this.timeToGuess = options?.timeToGuess ?? 30
+    this.onGameOver = options?.onGameOver
+    this.solution = randomSolution()
+    this.players = {}
+    this.timers = {}
+  }
 
   isFull = () => Object.keys(this.players).length >= this.maxPlayers
 
   addPlayer(id: string, username: string, country: string | null) {
-    if (!this.hasPlayer(id)) {
-      this.players[id] = {
-        id,
-        username,
-        country,
-        currentGuess: '',
-        guesses: [],
-      }
+    if (this.hasPlayer(id)) return
+
+    this.players[id] = {
+      id,
+      username,
+      country,
+      currentGuess: '',
+      guesses: [],
+    }
+
+    if (this.isFull() && this.timeToGuess) {
+      const guessBy = Date.now() + this.timeToGuess * 1000
+
+      Object.keys(this.players).forEach(player => {
+        this.players[player].guessBy = guessBy
+
+        this.timers[player] = setTimeout(() => {
+          if (this.isGameOver()) return
+          this.setGameOver({ type: 'noGuesses' })
+        }, this.timeToGuess! * 1000)
+      })
     }
   }
 
@@ -92,20 +130,43 @@ export class Game {
     const letterStatuses = compare(guess, this.solution)
     this.players[id].guesses.push({ raw: guess, computed: letterStatuses })
     this.players[id].currentGuess = ''
+
+    this.checkGameOver()
+    if (this.isGameOver()) return
+
+    if (this.timeToGuess) {
+      clearTimeout(this.timers[id])
+      this.players[id].guessBy = Date.now() + this.timeToGuess * 1000
+      this.timers[id] = setTimeout(() => {
+        if (this.isGameOver()) return
+        this.setGameOver({
+          type: 'timeLimit',
+          playerId: id,
+        })
+      }, this.timeToGuess * 1000)
+    }
   }
 
   isGameOver() {
-    return !!this.computeGameOver()
+    return !!this.gameOver
   }
 
-  computeGameOver(): GameOverState | undefined {
+  setGameOver(gameOver: GameOverState) {
+    this.gameOver = gameOver
+    if (this.onGameOver) this.onGameOver()
+  }
+
+  checkGameOver() {
+    if (this.isGameOver()) return
+
     for (const playerId of Object.keys(this.players)) {
       const player = this.players[playerId]
       if (player.guesses.length === MAX_GUESSES) {
-        return {
+        this.setGameOver({
           type: 'outOfGuesses',
           playerId,
-        }
+        })
+        return
       }
 
       if (
@@ -113,10 +174,11 @@ export class Game {
           guess.computed.every(status => status === 'c')
         )
       ) {
-        return {
+        this.setGameOver({
           type: 'win',
           playerId,
-        }
+        })
+        return
       }
     }
   }

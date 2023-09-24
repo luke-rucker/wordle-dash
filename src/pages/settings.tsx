@@ -59,7 +59,7 @@ export function Settings() {
 
         <h3 className="text-lg font-medium mt-8">Theme</h3>
         <p className="text-sm text-muted-foreground mb-6">
-          This is how other players will see you.
+          This is how Worlde Dash will look.
         </p>
 
         <ThemeSwitcher />

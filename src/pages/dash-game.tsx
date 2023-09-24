@@ -31,7 +31,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useGame } from '@/lib/game'
 import { Cell } from '@/components/cell'
-import { cn, getFlag } from '@/lib/utils'
+import { cn, getFlag, useCountdown } from '@/lib/utils'
 
 export function DashGame() {
   const navigate = useNavigate()
@@ -211,6 +211,10 @@ function GameGrid(player: GameGridProps) {
         {isYou ? 'You' : player.username}
 
         {player.country ? ` ${getFlag(player.country)}` : null}
+
+        {player.guessBy ? (
+          <Countdown to={player.guessBy} stopped={!!game.gameOver} />
+        ) : null}
       </p>
 
       {guesses.map((guess, index) => (
@@ -226,6 +230,12 @@ function GameGrid(player: GameGridProps) {
       ))}
     </div>
   )
+}
+
+function Countdown({ to, stopped }: { to: number; stopped?: boolean }) {
+  const countdown = useCountdown(to, stopped)
+
+  return <span className="ml-2">{countdown}</span>
 }
 
 type RowProps = {
@@ -303,6 +313,14 @@ function GameOverDialog() {
   }
 
   const { title, description } = (() => {
+    if (gameOver?.state.type === 'noGuesses') {
+      return {
+        title: 'You lost 😔',
+        description:
+          'You there? Neither you or your opponent submitted a guess in time.',
+      }
+    }
+
     const winningPlayer = gameOver.game[gameOver.state.playerId]
 
     if (gameOver?.state.type === 'win') {
@@ -315,6 +333,18 @@ function GameOverDialog() {
         return {
           title: 'You lost 😔',
           description: `${winningPlayer.username} was a bit speedier this time. Better luck next time.`,
+        }
+      }
+    } else if (gameOver?.state.type === 'timeLimit') {
+      if (gameOver?.state.playerId === userId) {
+        return {
+          title: 'You lost 😔',
+          description: "You didn't submit a guess in time.",
+        }
+      } else {
+        return {
+          title: 'You won! 🏆',
+          description: `${winningPlayer.username} didn't submit a guess in time.`,
         }
       }
     } else {

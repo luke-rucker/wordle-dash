@@ -39,6 +39,7 @@ export function GoogleButton({
 
   return (
     <Button
+      type="button"
       className={cn('w-full', className)}
       disabled={signInWithGoogle.isLoading}
       onClick={() => signInWithGoogle.mutate()}
