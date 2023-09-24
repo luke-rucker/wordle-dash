@@ -19,3 +19,12 @@ export function useTimer() {
 
   return date.toISOString().substring(14, 19)
 }
+
+export function getFlag(countryCode: string | null) {
+  if (!countryCode) return ''
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map(char => 127397 + char.charCodeAt(0))
+  return String.fromCodePoint(...codePoints)
+}

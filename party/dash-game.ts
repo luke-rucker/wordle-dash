@@ -45,7 +45,7 @@ export const safeGame = rpc.events({
   knockKnock: {
     schema: object({
       token: nullable(string()),
-      username: nullable(string()),
+      username: string(),
     }),
     async onMessage(message, ws, party, game) {
       let userId: string | null = null
@@ -69,23 +69,12 @@ export const safeGame = rpc.events({
       }
 
       attachments.set(ws, { userId })
-      game.addPlayer(userId, message.username)
+      game.addPlayer(userId, message.username, attachments.get(ws).country)
       rpc.send(ws, {
         type: 'welcome',
         userId,
         token,
       })
-      broadcastGame(game, party)
-    },
-  },
-  updateUsername: {
-    schema: object({
-      username: nullable(string()),
-    }),
-    onMessage(message, ws, party, game) {
-      const { userId } = attachments.get(ws)
-      if (!userId) return
-      game.setUsername(userId, message.username)
       broadcastGame(game, party)
     },
   },
@@ -125,6 +114,7 @@ export const safeGame = rpc.events({
 function broadcastGame(game: Dash.Game, party: Party.Party, skip?: string) {
   for (const ws of party.getConnections()) {
     const { userId } = attachments.get(ws)
+    console.log(userId)
     if (!userId || userId === skip) return
     rpc.send(ws, {
       type: 'tick',
@@ -145,6 +135,10 @@ export default class Server implements Party.PartyServer {
 
   onStart() {
     this.game = new Dash.Game()
+  }
+
+  onConnect(ws: Party.PartyConnection, ctx: Party.PartyConnectionContext) {
+    attachments.set(ws, { country: ctx.request.cf?.country as string | null })
   }
 
   onMessage(message: string | ArrayBuffer, ws: Party.PartyConnection) {

@@ -19,7 +19,6 @@ import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { GameContext } from '@/contexts/game-context'
-
 import { useUsernameStore } from '@/stores/username-store'
 import {
   Dialog,
@@ -32,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useGame } from '@/lib/game'
 import { Cell } from '@/components/cell'
+import { cn, getFlag } from '@/lib/utils'
 
 export function DashGame() {
   const navigate = useNavigate()
@@ -72,10 +72,12 @@ export function DashGame() {
   }
 
   useSocketEvent('open', () => {
+    const u = username()
+    if (!u) return navigate('/')
     client.send({
       type: 'knockKnock',
       token: session?.access_token ?? sessionStorage.getItem('token'),
-      username: username(),
+      username: u,
     })
   })
 
@@ -161,7 +163,11 @@ function GamePreview(player: OtherPlayerState) {
   return (
     <div className="space-y-2">
       <p>
-        {player.username}: {player.guesses.length} / {MAX_GUESSES}
+        <span className="text-red-500 dark:text-red-400">
+          {player.username}
+          {player.country ? ` ${getFlag(player.country)}` : null}:
+        </span>{' '}
+        {player.guesses.length} / {MAX_GUESSES}
       </p>
 
       {typeof guess === 'string' || typeof guess === 'number' ? (
@@ -193,7 +199,17 @@ function GameGrid(player: GameGridProps) {
 
   return (
     <div className="space-y-1">
-      <p>{isYou ? 'You' : player.username}</p>
+      <p
+        className={cn(
+          isYou
+            ? 'text-blue-500 dark:text-blue-400'
+            : 'text-red-500 dark:text-red-400'
+        )}
+      >
+        {isYou ? 'You' : player.username}
+
+        {player.country ? ` ${getFlag(player.country)}` : null}
+      </p>
 
       {guesses.map((guess, index) => (
         <CompletedRow key={index} guess={guess} />

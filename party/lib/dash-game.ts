@@ -6,14 +6,16 @@ export type Guess = { raw: string; computed: Array<LetterStatus> }
 
 export type PlayerState = {
   id: string
-  username: string | null
+  username: string
+  country: string | null
   guesses: Array<Guess>
   currentGuess: string
 }
 
 export type OtherPlayerState = {
   id: string
-  username: string | null
+  username: string
+  country: string | null
   guesses: Array<Array<LetterStatus>>
   currentGuess: number
 }
@@ -37,23 +39,20 @@ export class Game {
 
   isFull = () => Object.keys(this.players).length >= this.maxPlayers
 
-  addPlayer(id: string, username: string | null) {
+  addPlayer(id: string, username: string, country: string | null) {
     if (!this.hasPlayer(id)) {
       this.players[id] = {
         id,
+        username,
+        country,
         currentGuess: '',
         guesses: [],
-        username,
       }
     }
   }
 
   hasPlayer(id: string) {
     return this.players[id] !== undefined
-  }
-
-  setUsername(id: string, username: string | null) {
-    this.players[id].username = username
   }
 
   stateForPlayer(id: string): GameState {
