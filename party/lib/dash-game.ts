@@ -83,7 +83,13 @@ export class Game {
 
         this.timers[player] = setTimeout(() => {
           if (this.isGameOver()) return
-          this.setGameOver({ type: 'noGuesses' })
+          const others = Object.keys(this.players).filter(id => id !== player)
+
+          if (others.some(player => this.players[player].guesses.length > 0)) {
+            this.setGameOver({ type: 'timeLimit', playerId: player })
+          } else {
+            this.setGameOver({ type: 'noGuesses' })
+          }
         }, this.timeToGuess! * 1000)
       })
     }

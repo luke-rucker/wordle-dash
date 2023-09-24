@@ -35,7 +35,7 @@ export function useCountdown(to: number, stopped?: boolean) {
 
 function formatSeconds(seconds: number) {
   const date = new Date(0)
-  date.setSeconds(seconds)
+  date.setSeconds(seconds <= 0 ? 0 : seconds)
 
   return date.toISOString().substring(14, 19)
 }
