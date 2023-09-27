@@ -21,28 +21,51 @@ import {
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Waiting } from '@/components/waiting'
+import { PARTY_KIT_HOST } from '@/constants'
 import { AnonProfileData, anonProfileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
-import { useUsernameStore } from '@/stores/username-store'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import { LetterStatus } from '@party/lib/words/compare'
 import type { GameType } from '@party/lobby'
+import { MAIN_ROOM, type MainMessage } from '@party/main'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
+import usePartySocket from 'partysocket/react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { useLocalStorage, useReadLocalStorage } from 'usehooks-ts'
 
 export function Landing() {
   const [waiting, setWaiting] = React.useState<GameType | null>(null)
 
   const navigate = useNavigate()
 
+  const [coop, setCoop] = React.useState(0)
+  const [dash, setDash] = React.useState(0)
+
+  usePartySocket({
+    host: PARTY_KIT_HOST,
+    party: 'main',
+    room: MAIN_ROOM,
+    onMessage(event) {
+      const update = JSON.parse(event.data) as MainMessage
+
+      if (update.type === 'sync') {
+        setCoop(update.coop)
+        setDash(update.dash)
+      } else if (update.type === 'update') {
+        if (update.game === 'coop') setCoop(update.count)
+        if (update.game === 'dash') setDash(update.count)
+      }
+    },
+  })
+
   return (
     <main className="flex-grow flex flex-col items-center justify-center">
-      <div className="w-full max-w-lg px-8 md:px-0 py-6 md:py-0">
+      <div className="w-full max-w-lg px-8 md:px-0 py-6 md:py-12">
         <h2 className="mb-0.5 md:mb-5 text-2xl md:text-5xl font-bold md:font-semibold tracking-tight">
           <span
             role="img"
@@ -66,32 +89,26 @@ export function Landing() {
         >
           <TabsList className="grid w-full grid-cols-2 h-fit">
             <TabsTrigger value="coop" className="flex flex-col">
-              Co-Op <p className="text-xs">1034 Online</p>
+              Co-Op <p className="text-xs">{coop} Online</p>
             </TabsTrigger>
             <TabsTrigger value="dash" className="flex flex-col">
-              Dash <p className="text-xs">754 Online</p>
+              Dash <p className="text-xs">{dash} Online</p>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="coop">
             <Card>
               <CardHeader>
                 <CardTitle>Co-Op</CardTitle>
-                <CardDescription>
-                  Take turns trying to guess the hidden word with your opponent.
-                  Whoever guesses it first, wins.
-                </CardDescription>
               </CardHeader>
 
               <CardContent>
-                <CoopGame />
-              </CardContent>
-
-              <CardFooter>
                 <EnsureUsername>
                   {waiting === 'coop' ? (
                     <Waiting
                       lobby="coop"
-                      onJoin={gameUrl => navigate(gameUrl)}
+                      onJoin={gameUrl =>
+                        navigate(gameUrl, { state: { realGame: true } })
+                      }
                       onCancel={() => setWaiting(null)}
                     />
                   ) : (
@@ -107,6 +124,19 @@ export function Landing() {
                     </div>
                   )}
                 </EnsureUsername>
+              </CardContent>
+
+              <CardFooter className="block">
+                <h4 className="text-lg font-semibold leading-none tracking-tight mb-2">
+                  How to play
+                </h4>
+
+                <CardDescription>
+                  Take turns trying to guess the hidden word with your opponent.
+                  Whoever guesses it first, wins.
+                </CardDescription>
+
+                <CoopGame />
               </CardFooter>
             </Card>
           </TabsContent>
@@ -114,22 +144,16 @@ export function Landing() {
             <Card>
               <CardHeader>
                 <CardTitle>Dash</CardTitle>
-                <CardDescription>
-                  Race against your opponent to guess the word first on separate
-                  boards. Be careful not to run out of guesses.
-                </CardDescription>
               </CardHeader>
 
               <CardContent>
-                <DashGame />
-              </CardContent>
-
-              <CardFooter>
                 <EnsureUsername>
                   {waiting === 'dash' ? (
                     <Waiting
                       lobby="dash"
-                      onJoin={gameUrl => navigate(gameUrl)}
+                      onJoin={gameUrl =>
+                        navigate(gameUrl, { state: { realGame: true } })
+                      }
                       onCancel={() => setWaiting(null)}
                     />
                   ) : (
@@ -145,6 +169,19 @@ export function Landing() {
                     </div>
                   )}
                 </EnsureUsername>
+              </CardContent>
+
+              <CardFooter className="block">
+                <h4 className="text-lg font-semibold leading-none tracking-tight mb-2">
+                  How to play
+                </h4>
+
+                <CardDescription>
+                  Race against your opponent to guess the word first on separate
+                  boards. Be careful not to run out of guesses.
+                </CardDescription>
+
+                <DashGame />
               </CardFooter>
             </Card>
           </TabsContent>
@@ -159,12 +196,12 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
   const profile = useQuery(
     supabase
       .from('profiles')
-      .select('username')
+      .select('username,country')
       .eq('id', session?.user.id as string),
     { enabled: !!session }
   )
 
-  const username = useUsernameStore(state => state.username)
+  const username = useReadLocalStorage<string>('username')
 
   if (session) {
     return (
@@ -210,7 +247,8 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
     <div className="w-full">
       <h3 className="text-lg font-semibold">Play with an Account</h3>
       <p className="text-xs text-muted-foreground mb-6">
-        When you play with an account you can save the stats of your games.
+        When you play with an account you can save the stats of your games and
+        compete on the global leaderboard.
       </p>
 
       <GoogleButton />
@@ -239,7 +277,7 @@ function AnonProfileForm() {
     },
   })
 
-  const setUsername = useUsernameStore(state => state.setUsername)
+  const [, setUsername] = useLocalStorage('username', '')
 
   return (
     <Form {...form}>
@@ -264,7 +302,7 @@ function AnonProfileForm() {
         />
 
         <Button className="w-full" variant="secondary">
-          Play
+          Continue
         </Button>
       </form>
     </Form>
@@ -485,7 +523,7 @@ function CoopGame() {
   const gameOver = current === coopFrames.length - 1
 
   return (
-    <div className="flex flex-col items-center p-3">
+    <div className="w-full flex flex-col items-center p-3">
       <div className="flex justify-center space-x-32 mb-2">
         <Player
           player={1}

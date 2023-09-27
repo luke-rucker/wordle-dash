@@ -5,6 +5,11 @@ import * as Dash from './lib/dash-game'
 import { nullable, object, string, length } from 'valibot'
 import { attachments } from '@party/lib/attachments'
 import { SOLUTION_SIZE } from '@party/lib/constants'
+import { MAIN_ROOM } from '@party/main'
+import { createSupabaseClient } from '@party/lib/supabase'
+import { isValidGuess } from '@party/lib/words/valid-guesses'
+
+type ReadyResponse = { type: 'ready' }
 
 type WelcomeResponse = {
   type: 'welcome'
@@ -25,14 +30,17 @@ type GameOverResponse = {
   game: Dash.Game['players']
 }
 
-type PongResponse = { type: 'pong' }
+type BadGuessResponse = {
+  type: 'badGuess'
+}
 
 type PartyResponses =
+  | ReadyResponse
   | WelcomeResponse
   | FullGameResponse
-  | PongResponse
   | TickResponse
   | GameOverResponse
+  | BadGuessResponse
 
 const rpc = createPartyRpc<PartyResponses, Dash.Game>()
 
@@ -106,6 +114,10 @@ export const safeGame = rpc.events({
 
       if (game.players[userId].currentGuess.length !== SOLUTION_SIZE) return
 
+      if (!isValidGuess(game.players[userId].currentGuess)) {
+        return rpc.send(ws, { type: 'badGuess' })
+      }
+
       game.submitGuess(userId)
 
       if (!game.isGameOver()) {
@@ -136,8 +148,12 @@ export default class Server implements Party.PartyServer {
     this.party = party
   }
 
-  onStart() {
+  async onStart() {
+    const supabase = createSupabaseClient(this.party.env)
+    const { data } = await supabase.rpc('random_solution').throwOnError()
+
     this.game = new Dash.Game({
+      solution: data!,
       onGameOver: () => {
         if (!this.game || !this.game.gameOver) return
         rpc.broadcast(this.party, {
@@ -147,13 +163,40 @@ export default class Server implements Party.PartyServer {
         })
       },
     })
+
+    rpc.broadcast(this.party, { type: 'ready' })
   }
 
-  onConnect(ws: Party.PartyConnection, ctx: Party.PartyConnectionContext) {
+  async onConnect(
+    ws: Party.PartyConnection,
+    ctx: Party.PartyConnectionContext
+  ) {
     attachments.set(ws, { country: ctx.request.cf?.country as string | null })
+    this.updateConnections('connect')
+    if (this.game) {
+      rpc.send(ws, { type: 'ready' })
+    }
   }
 
   onMessage(message: string | ArrayBuffer, ws: Party.PartyConnection) {
-    safeGame.onMessage(message, ws, this.party, this.game!)
+    if (!this.game) return
+    safeGame.onMessage(message, ws, this.party, this.game)
+  }
+
+  async onClose() {
+    await this.updateConnections('disconnect')
+  }
+
+  async updateConnections(type: 'connect' | 'disconnect') {
+    const mainParty = this.party.context.parties.main
+    const mainRoom = mainParty.get(MAIN_ROOM)
+
+    await mainRoom.fetch({
+      method: 'POST',
+      body: JSON.stringify({
+        type,
+        gameType: 'dash',
+      }),
+    })
   }
 }

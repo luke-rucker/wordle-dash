@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { PARTY_KIT_HOST } from '@/constants'
 import { useTimer } from '@/lib/utils'
+import * as React from 'react'
 import type { GameType, LobbyMessage } from '@party/lobby'
 import usePartySocket from 'partysocket/react'
 
@@ -13,10 +14,15 @@ export function Waiting({
   onJoin: (gameUrl: string) => void
   lobby: GameType
 }) {
+  const [waiting, setWaiting] = React.useState(false)
+
   usePartySocket({
     host: PARTY_KIT_HOST,
     party: 'lobby',
     room: lobby,
+    onOpen() {
+      setWaiting(true)
+    },
     onMessage(event) {
       const message = JSON.parse(event.data) as LobbyMessage
 
@@ -26,15 +32,19 @@ export function Waiting({
     },
   })
 
-  const timer = useTimer()
-
   return (
     <div className="w-full">
-      <p> Waiting for a game - {timer}</p>
+      <p> Waiting for a game - {waiting ? <Timer /> : 'Connecting...'}</p>
 
       <Button className="mt-3 w-full" variant="outline" onClick={onCancel}>
         Cancel
       </Button>
     </div>
   )
+}
+
+function Timer() {
+  const timer = useTimer()
+
+  return timer
 }

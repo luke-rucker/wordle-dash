@@ -2,6 +2,8 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { useInterval } from 'usehooks-ts'
 import * as React from 'react'
+import i18nCountries, { type Alpha2Code } from 'i18n-iso-countries'
+import english from 'i18n-iso-countries/langs/en.json'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -39,6 +41,10 @@ function formatSeconds(seconds: number) {
 
   return date.toISOString().substring(14, 19)
 }
+
+i18nCountries.registerLocale(english)
+export const countries = i18nCountries.getNames('en', { select: 'alias' })
+export const countryCodes = Object.keys(countries) as Array<Alpha2Code>
 
 export function getFlag(countryCode: string | null) {
   if (!countryCode) return ''

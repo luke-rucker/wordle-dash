@@ -1,4 +1,3 @@
-import { randomSolution } from './words/solutions'
 import { type LetterStatus, compare } from './words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 
@@ -30,9 +29,10 @@ export type GameState = {
 export type GameOverState =
   | {
       type: 'win' | 'outOfGuesses' | 'timeLimit'
+      solution: string
       playerId: string
     }
-  | { type: 'noGuesses' }
+  | { type: 'noGuesses'; solution: string }
 
 type TimeToGuess = 30 | 60
 
@@ -51,15 +51,18 @@ export class Game {
 
   onGameOver?: () => void
 
-  constructor(options?: {
+  constructor(options: {
+    solution: string
     timeToGuess?: TimeToGuess
     onGameOver?: () => void
   }) {
-    this.timeToGuess = options?.timeToGuess ?? 30
-    this.onGameOver = options?.onGameOver
-    this.solution = randomSolution()
+    this.solution = options?.solution
+    this.timeToGuess = options.timeToGuess ?? 30
+    this.onGameOver = options.onGameOver
     this.players = {}
     this.timers = {}
+
+    console.log(this)
   }
 
   isFull = () => Object.keys(this.players).length >= this.maxPlayers
@@ -86,9 +89,13 @@ export class Game {
           const others = Object.keys(this.players).filter(id => id !== player)
 
           if (others.some(player => this.players[player].guesses.length > 0)) {
-            this.setGameOver({ type: 'timeLimit', playerId: player })
+            this.setGameOver({
+              type: 'timeLimit',
+              playerId: player,
+              solution: this.solution,
+            })
           } else {
-            this.setGameOver({ type: 'noGuesses' })
+            this.setGameOver({ type: 'noGuesses', solution: this.solution })
           }
         }, this.timeToGuess! * 1000)
       })
@@ -128,7 +135,6 @@ export class Game {
   }
 
   submitGuess(id: string) {
-    // TODO: add guess validation
     if (this.isGameOver()) return
 
     const guess = this.players[id].currentGuess
@@ -148,6 +154,7 @@ export class Game {
         this.setGameOver({
           type: 'timeLimit',
           playerId: id,
+          solution: this.solution,
         })
       }, this.timeToGuess * 1000)
     }
@@ -171,6 +178,7 @@ export class Game {
         this.setGameOver({
           type: 'outOfGuesses',
           playerId,
+          solution: this.solution,
         })
         return
       }
@@ -183,6 +191,7 @@ export class Game {
         this.setGameOver({
           type: 'win',
           playerId,
+          solution: this.solution,
         })
         return
       }

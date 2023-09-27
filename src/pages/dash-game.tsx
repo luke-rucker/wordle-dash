@@ -4,7 +4,14 @@ import { createPartyHooks } from 'partyrpc/react'
 import type { SafeGameEvents, SafeGameResponses } from '@party/dash-game'
 import * as React from 'react'
 import usePartySocket from 'partysocket/react'
-import { useNavigate, useParams } from 'react-router-dom'
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
+import ConfettiExplosion from 'react-confetti-explosion'
 import type {
   GameOverState,
   GameState,
@@ -19,7 +26,6 @@ import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { GameContext } from '@/contexts/game-context'
-import { useUsernameStore } from '@/stores/username-store'
 import {
   Dialog,
   DialogContent,
@@ -33,13 +39,23 @@ import { useGame } from '@/lib/game'
 import { Cell } from '@/components/cell'
 import { cn, getFlag, useCountdown } from '@/lib/utils'
 import { Waiting } from '@/components/waiting'
+import { Alert, AlertTitle } from '@/components/ui/alert'
+import { useReadLocalStorage } from 'usehooks-ts'
 
 export function DashGame() {
-  const navigate = useNavigate()
   const { gameId } = useParams()
-  console.log(gameId)
+  const location = useLocation()
 
-  // TODO: figure out how to get socket to reconnect when gameId changes
+  if (!location.state?.realGame) {
+    return <Navigate to="/" replace />
+  }
+
+  return <Game gameId={gameId!} key={gameId} />
+}
+
+function Game({ gameId }: { gameId: string }) {
+  const navigate = useNavigate()
+
   const socket = usePartySocket({
     host: PARTY_KIT_HOST,
     party: 'dashGame',
@@ -54,18 +70,18 @@ export function DashGame() {
     [socket]
   )
 
-  const { usePartyMessage, useSocketEvent } = createPartyHooks(client)
+  const { usePartyMessage } = createPartyHooks(client)
 
   const session = useSession()
   const profile = useQuery(
     supabase
       .from('profiles')
-      .select('username')
+      .select('username,country')
       .eq('id', session?.user.id as string),
     { enabled: !!session }
   )
 
-  const anonUsername = useUsernameStore(state => state.username)
+  const anonUsername = useReadLocalStorage<string>('username')
   const username = () => {
     if (profile.data && profile.data[0].username) {
       return profile.data[0].username
@@ -74,7 +90,7 @@ export function DashGame() {
     }
   }
 
-  useSocketEvent('open', () => {
+  usePartyMessage('ready', () => {
     const u = username()
     if (!u) return navigate('/')
     client.send({
@@ -105,20 +121,57 @@ export function DashGame() {
   }>()
   usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
 
-  if (!game || !game.others.length || !game.you || !userId) {
+  const [badGuess, setBadGuess] = React.useState(false)
+  usePartyMessage('badGuess', () => setBadGuess(true))
+
+  React.useEffect(() => {
+    if (!badGuess) return
+    const clear = setTimeout(() => setBadGuess(false), 2500)
+    return () => clearTimeout(clear)
+  }, [badGuess])
+
+  React.useEffect(() => {
+    if (gameOver) {
+      socket.close()
+    }
+  }, [gameOver, socket])
+
+  if (!game || !game.you || !userId) {
     return <div className="container">Loading....</div>
   }
 
   const { you, others } = game
   const other = others[0]
 
+  const emptyState: OtherPlayerState = {
+    id: '',
+    username: 'Your opponent',
+    country: null,
+    guesses: [],
+    currentGuess: 0,
+  }
+
   return (
-    <GameContext.Provider value={{ userId, game, gameOver }}>
+    <GameContext.Provider value={{ userId, badGuess, game, gameOver }}>
       {gameOver ? <GameOverDialog /> : null}
 
-      <div className="h-full py-4 flex flex-col items-center justify-between">
+      <div className="h-full py-6 md:pt-20 flex flex-col items-center justify-between relative">
+        {badGuess ? (
+          <Alert className="absolute top-4 w-fit">
+            <AlertTitle className="mb-0">Not in the word list</AlertTitle>
+          </Alert>
+        ) : null}
+
+        {!other ? (
+          <Alert className="absolute top-4 w-fit">
+            <AlertTitle className="mb-0">
+              Waiting for your opponent...
+            </AlertTitle>
+          </Alert>
+        ) : null}
+
         <div className="container flex flex-col items-center space-y-2 md:hidden">
-          <GamePreview {...other} />
+          <GamePreview {...(other ?? emptyState)} />
 
           <GameGrid {...you} />
         </div>
@@ -126,7 +179,7 @@ export function DashGame() {
         <div className="container hidden md:flex gap-8 justify-center">
           <GameGrid {...you} />
 
-          <GameGrid {...other} />
+          <GameGrid {...(other ?? emptyState)} />
         </div>
 
         <Keyboard
@@ -134,7 +187,7 @@ export function DashGame() {
           onDelete={() => client.send({ type: 'typeGuess', guess: null })}
           onEnter={() => client.send({ type: 'submitGuess' })}
           guesses={you.guesses}
-          disabled={!!gameOver}
+          disabled={!!gameOver || !other}
         />
       </div>
     </GameContext.Provider>
@@ -172,7 +225,10 @@ function GamePreview(player: OtherPlayerState) {
           {player.country ? ` ${getFlag(player.country)}` : null}
         </span>
         {' - Attempt '}
-        {player.guesses.length} / {MAX_GUESSES}
+        {player.guesses.length}/{MAX_GUESSES}
+        {player.guessBy ? (
+          <Countdown to={player.guessBy} stopped={!!game.gameOver} />
+        ) : null}
       </p>
 
       {typeof guess === 'string' || typeof guess === 'number' ? (
@@ -204,16 +260,17 @@ function GameGrid(player: GameGridProps) {
 
   return (
     <div className="space-y-1">
-      <p
-        className={cn(
-          isYou
-            ? 'text-blue-500 dark:text-blue-400'
-            : 'text-red-500 dark:text-red-400'
-        )}
-      >
-        {isYou ? 'You' : player.username}
-
-        {player.country ? ` ${getFlag(player.country)}` : null}
+      <p>
+        <span
+          className={cn(
+            isYou
+              ? 'text-blue-500 dark:text-blue-400'
+              : 'text-red-500 dark:text-red-400'
+          )}
+        >
+          {isYou ? 'You' : player.username}
+          {player.country ? ` ${getFlag(player.country)}` : null}
+        </span>
 
         {player.guessBy ? (
           <Countdown to={player.guessBy} stopped={!!game.gameOver} />
@@ -243,10 +300,11 @@ function Countdown({ to, stopped }: { to: number; stopped?: boolean }) {
 
 type RowProps = {
   children: React.ReactNode
+  className?: string
 }
 
-function Row({ children }: RowProps) {
-  return <div className="flex gap-1">{children}</div>
+function Row({ children, className }: RowProps) {
+  return <div className={cn('flex gap-1', className)}>{children}</div>
 }
 
 type CompletedRowProps = {
@@ -276,8 +334,10 @@ function CurrentRow({ guess }: CurrentRowProps) {
   const letters = yourGuess ? guess.split('') : Array.from(Array(guess))
   const emptyCells = Array.from(Array(SOLUTION_SIZE - letters.length))
 
+  const { badGuess } = useGame()
+
   return (
-    <Row>
+    <Row className={cn(yourGuess && badGuess ? 'jiggle' : null)}>
       {letters.map((letter, index) => (
         <Cell
           letter={letter ?? '*'}
@@ -318,10 +378,10 @@ function GameOverDialog() {
     return null
   }
 
-  const { title, description } = (() => {
+  const { description, winnerIsMe } = (() => {
     if (gameOver?.state.type === 'noGuesses') {
       return {
-        title: 'You lost 😔',
+        winnerIsMe: false,
         description:
           'You there? Neither you or your opponent submitted a guess in time.',
       }
@@ -332,36 +392,36 @@ function GameOverDialog() {
     if (gameOver?.state.type === 'win') {
       if (gameOver?.state.playerId === userId) {
         return {
-          title: 'You won! 🏆',
+          winnerIsMe: true,
           description: 'Looking speedy over there...',
         }
       } else {
         return {
-          title: 'You lost 😔',
+          winnerIsMe: false,
           description: `${winningPlayer.username} was a bit speedier this time. Better luck next time.`,
         }
       }
     } else if (gameOver?.state.type === 'timeLimit') {
       if (gameOver?.state.playerId === userId) {
         return {
-          title: 'You lost 😔',
+          winnerIsMe: false,
           description: "You didn't submit a guess in time.",
         }
       } else {
         return {
-          title: 'You won! 🏆',
+          winnerIsMe: true,
           description: `${winningPlayer.username} didn't submit a guess in time.`,
         }
       }
     } else {
       if (gameOver?.state.playerId === userId) {
         return {
-          title: 'You lost 😔',
+          winnerIsMe: false,
           description: 'You ran out guesses. Better luck next time.',
         }
       } else {
         return {
-          title: 'You won! 🏆',
+          winnerIsMe: true,
           description: `${winningPlayer.username} ran out of guesses.`,
         }
       }
@@ -372,24 +432,39 @@ function GameOverDialog() {
     <Dialog open={open} onOpenChange={open => setOpen(open)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>
+            {winnerIsMe ? 'You won! 🏆' : 'You lost 😔'}{' '}
+            {winnerIsMe ? <ConfettiExplosion zIndex={51} /> : null}
+          </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <DialogFooter>
+        <p className="">The solution was</p>
+
+        <div className=" pb-4 flex items-center space-x-1">
+          {gameOver.state.solution.split('').map((letter, index) => (
+            <Cell letter={letter} status="c" key={index} />
+          ))}
+        </div>
+
+        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
           {waiting ? (
             <Waiting
               lobby="dash"
               onJoin={gameUrl => {
-                navigate(gameUrl)
+                navigate(gameUrl, { state: { realGame: true } })
                 setOpen(false)
               }}
               onCancel={() => setWaiting(false)}
             />
           ) : (
-            <Button className="w-full" onClick={() => setWaiting(true)}>
-              Play another
-            </Button>
+            <>
+              <Button onClick={() => setWaiting(true)}>Play another</Button>
+
+              <Button asChild variant="link">
+                <Link to="/">Go home</Link>
+              </Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>

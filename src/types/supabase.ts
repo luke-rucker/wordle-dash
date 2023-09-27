@@ -11,16 +11,19 @@ export interface Database {
     Tables: {
       profiles: {
         Row: {
+          country: string | null
           created_at: string | null
           id: string
           username: string | null
         }
         Insert: {
+          country?: string | null
           created_at?: string | null
           id: string
           username?: string | null
         }
         Update: {
+          country?: string | null
           created_at?: string | null
           id?: string
           username?: string | null
@@ -34,12 +37,36 @@ export interface Database {
           }
         ]
       }
+      solutions: {
+        Row: {
+          created_at: string | null
+          id: number
+          word: string
+          wordle_solution: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: never
+          word: string
+          wordle_solution?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: never
+          word?: string
+          wordle_solution?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      random_solution: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

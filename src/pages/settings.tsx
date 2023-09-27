@@ -4,6 +4,13 @@ import { Icons } from '@/components/icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command'
+import {
   Form,
   FormControl,
   FormDescription,
@@ -13,28 +20,36 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { useTheme } from '@/contexts/theme-context'
 import { ProfileData, profileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
-import { useUsernameStore } from '@/stores/username-store'
+import { cn, countries, countryCodes, getFlag } from '@/lib/utils'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { LetterStatus } from '@party/lib/words/compare'
+import * as RadioGroup from '@radix-ui/react-radio-group'
 import {
   useQuery,
   useUpsertMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
+import { Alpha2Code } from 'i18n-iso-countries'
 import { useForm } from 'react-hook-form'
+import { useLocalStorage } from 'usehooks-ts'
 import { Output, maxLength, minLength, object, string } from 'valibot'
 
 export function Settings() {
   const session = useSession()
 
   return (
-    <div className="container py-6 md:py-12">
+    <div className="flex-grow container py-6 md:py-16">
       <div className="space-y-0.5">
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
 
@@ -78,7 +93,7 @@ const anonProfileSchema = object({
 type AnonProfileData = Output<typeof anonProfileSchema>
 
 function AnonProfileForm() {
-  const { username, setUsername } = useUsernameStore()
+  const [username, setUsername] = useLocalStorage('username', '')
 
   const form = useForm<AnonProfileData>({
     resolver: valibotResolver(anonProfileSchema),
@@ -135,13 +150,16 @@ function AnonProfileForm() {
 
 function ProfileForm({ userId }: { userId: string }) {
   const profile = useQuery(
-    supabase.from('profiles').select('username').eq('id', userId)
+    supabase.from('profiles').select('username,country').eq('id', userId)
   )
 
   const form = useForm<ProfileData>({
     resolver: valibotResolver(profileSchema),
     values: {
       username: profile.data ? profile.data[0].username ?? '' : '',
+      country: profile.data
+        ? (profile.data[0].country as Alpha2Code) ?? 'US'
+        : 'US',
     },
   })
 
@@ -197,6 +215,69 @@ function ProfileForm({ userId }: { userId: string }) {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Country</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        'w-[300px] justify-between',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value
+                        ? `${getFlag(field.value)} ${countries[field.value]}`
+                        : 'Select country'}
+                      <Icons.ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search countries..." />
+                    <CommandEmpty>No country found.</CommandEmpty>
+                    <CommandGroup>
+                      <ScrollArea className="h-[300px]">
+                        {countryCodes.map(countryCode => (
+                          <CommandItem
+                            value={`${countryCode} ${countries[countryCode]}`}
+                            key={countryCode}
+                            onSelect={() => {
+                              form.setValue('country', countryCode)
+                            }}
+                          >
+                            <Icons.Check
+                              className={cn(
+                                'mr-2 h-4 w-4',
+                                countryCode === field.value
+                                  ? 'opacity-100'
+                                  : 'opacity-0'
+                              )}
+                            />
+                            {getFlag(countryCode)} {countries[countryCode]}
+                          </CommandItem>
+                        ))}
+                      </ScrollArea>
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                This is the country that will be displayed to your opponents and
+                on the leaderboard.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="flex items-center space-x-4">
           <Button type="submit" disabled={updateProfile.isLoading}>
             {updateProfile.isLoading ? (
@@ -219,27 +300,33 @@ function ProfileForm({ userId }: { userId: string }) {
   )
 }
 
-function ThemeSwitcher() {
-  const rows: Array<Array<LetterStatus>> = [
-    ['a', 'a', 'c', 'p', 'a'],
-    ['p', 'a', 'c', 'a', 'a'],
-    ['p', 'p', 'c', 'a', 'a'],
-    ['c', 'p', 'c', 'a', 'a'],
-    ['c', 'a', 'c', 'c', 'a'],
-    ['c', 'c', 'c', 'c', 'c'],
-  ]
+const rows: Array<Array<LetterStatus>> = [
+  ['a', 'a', 'c', 'p', 'a'],
+  ['p', 'a', 'c', 'a', 'a'],
+  ['p', 'p', 'c', 'a', 'a'],
+  ['c', 'p', 'c', 'a', 'a'],
+  ['c', 'a', 'c', 'c', 'a'],
+  ['c', 'c', 'c', 'c', 'c'],
+]
 
+function ThemeSwitcher() {
   const theme = useTheme()
 
   return (
-    <div className="flex space-x-6">
+    <RadioGroup.Root
+      onValueChange={v => theme.set(v as 'light' | 'dark')}
+      defaultValue={theme.current}
+      aria-label="Theme"
+      className="flex space-x-6"
+    >
       <div>
-        <button
+        <RadioGroup.Item
+          id="l"
+          value="light"
           className={cn(
-            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-white border-white',
+            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-white border-white focus:outline-none',
             theme.current === 'light' && 'border-primary'
           )}
-          onClick={() => theme.set('light')}
         >
           {rows.flatMap((statuses, row) =>
             statuses.map((status, index) => (
@@ -250,32 +337,39 @@ function ThemeSwitcher() {
               />
             ))
           )}
-        </button>
+          <RadioGroup.Indicator />
+        </RadioGroup.Item>
 
-        <p className="text-center">Light</p>
+        <label htmlFor="l" className="block text-center">
+          Light
+        </label>
       </div>
 
       <div>
-        <button
+        <RadioGroup.Item
+          id="d"
+          value="dark"
           className={cn(
-            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-[#04080F] border-[#04080F]',
+            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-[#04080F] border-[#04080F] focus:outline-none',
             theme.current === 'dark' && 'border-primary'
           )}
-          onClick={() => theme.set('dark')}
         >
           {rows.flatMap((statuses, row) =>
             statuses.map((status, index) => (
               <Cell
                 key={`${row}-${index}`}
                 status={status}
-                className="h-5 w-5 text-xs"
+                className="h-5 w-5"
               />
             ))
           )}
-        </button>
+          <RadioGroup.Indicator />
+        </RadioGroup.Item>
 
-        <p className="text-center">Dark</p>
+        <label className="block text-center" htmlFor="d">
+          Dark
+        </label>
       </div>
-    </div>
+    </RadioGroup.Root>
   )
 }

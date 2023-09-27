@@ -15,6 +15,8 @@ import {
   BarChart3,
   HelpCircle,
   InfoIcon,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react'
 
 export type Icon = LucideIcon
@@ -32,6 +34,8 @@ export const Icons = {
   User,
   Help: HelpCircle,
   Info: InfoIcon,
+  ChevronsUpDown,
+  Check,
   Spinner: (props: LucideProps) => (
     <Loader2 {...props} className={cn('animate-spin', props.className)} />
   ),

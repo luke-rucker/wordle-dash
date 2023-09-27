@@ -8,6 +8,14 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command'
 import {
   FormField,
   FormItem,
@@ -18,9 +26,16 @@ import {
   Form,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/use-toast'
 import { ProfileData, profileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
+import { cn, countries, countryCodes, getFlag } from '@/lib/utils'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { useUpsertMutation } from '@supabase-cache-helpers/postgrest-react-query'
 import { useForm } from 'react-hook-form'
@@ -30,6 +45,7 @@ export function CompleteProfileModal({ userId }: { userId: string }) {
     resolver: valibotResolver(profileSchema),
     values: {
       username: '',
+      country: 'US',
     },
   })
 
@@ -90,6 +106,71 @@ export function CompleteProfileModal({ userId }: { userId: string }) {
                   </FormControl>
                   <FormDescription>
                     This is your public display name.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Country</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            'w-[300px] justify-between',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value
+                            ? `${getFlag(field.value)} ${
+                                countries[field.value]
+                              }`
+                            : 'Select country'}
+                          <Icons.ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search countries..." />
+                        <CommandEmpty>No country found.</CommandEmpty>
+                        <CommandGroup>
+                          <ScrollArea className="h-[300px]">
+                            {countryCodes.map(countryCode => (
+                              <CommandItem
+                                value={`${countryCode} ${countries[countryCode]}`}
+                                key={countryCode}
+                                onSelect={() => {
+                                  form.setValue('country', countryCode)
+                                }}
+                              >
+                                <Icons.Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    countryCode === field.value
+                                      ? 'opacity-100'
+                                      : 'opacity-0'
+                                  )}
+                                />
+                                {getFlag(countryCode)} {countries[countryCode]}
+                              </CommandItem>
+                            ))}
+                          </ScrollArea>
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    This is the country that will be displayed to your opponents
+                    and on the leaderboard.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

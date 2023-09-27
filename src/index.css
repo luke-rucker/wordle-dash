@@ -1,6 +1,4 @@
 @tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   :root {
@@ -60,3 +58,32 @@
     @apply h-full;
   }
 }
+
+@tailwind components;
+
+@layer components {
+  .jiggle {
+    animation: jiggle linear;
+    animation-duration: 250ms;
+  }
+
+  @keyframes jiggle {
+    0% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(-0.5rem, 0);
+    }
+    50% {
+      transform: translate(0.5rem, 0);
+    }
+    75% {
+      transform: translate(-0.5rem, 0);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+}
+
+@tailwind utilities;
