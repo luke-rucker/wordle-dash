@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
+export type Supabase = ReturnType<typeof createSupabaseClient>
+
 export const createSupabaseClient = (env: Record<string, unknown>) =>
   createClient<Database>(
     env.SUPABASE_APP_URL as string,

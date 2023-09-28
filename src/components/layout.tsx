@@ -23,14 +23,16 @@ export function Layout() {
 
           <div className="flex items-center space-x-2 md:space-x-3">
             <Button asChild size="icon" variant="ghost">
-              <Link to="/">
+              <Link to="stats" title="Stats">
                 <Icons.Stats className="h-6 w-6" />
+                <span className="sr-only">Stats</span>
               </Link>
             </Button>
 
             <Button asChild size="icon" variant="ghost">
-              <Link to="settings">
+              <Link to="settings" title="Settings">
                 <Icons.Settings className="h-6 w-6" />
+                <span className="sr-only">Settings</span>
               </Link>
             </Button>
 

@@ -119,8 +119,8 @@ function AnonProfileForm() {
           <Icons.Info className="h-4 w-4" />
           <AlertTitle>You're signed out</AlertTitle>
           <AlertDescription>
-            You can sign into or create your account and save your stats across
-            devices.
+            You can sign into or create your account to save your stats and
+            compete on the leaderboard.
             <GoogleButton redirectTo="/settings" className="mt-2" />
           </AlertDescription>
         </Alert>
@@ -142,7 +142,17 @@ function AnonProfileForm() {
           )}
         />
 
-        <Button>Save</Button>
+        <div className="flex items-center space-x-4">
+          <Button>Save</Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setUsername('')}
+          >
+            Clear
+          </Button>
+        </div>
       </form>
     </Form>
   )
@@ -150,16 +160,19 @@ function AnonProfileForm() {
 
 function ProfileForm({ userId }: { userId: string }) {
   const profile = useQuery(
-    supabase.from('profiles').select('username,country').eq('id', userId)
+    supabase
+      .from('profiles')
+      .select('username,country')
+      .eq('id', userId)
+      .limit(1)
+      .single()
   )
 
   const form = useForm<ProfileData>({
     resolver: valibotResolver(profileSchema),
     values: {
-      username: profile.data ? profile.data[0].username ?? '' : '',
-      country: profile.data
-        ? (profile.data[0].country as Alpha2Code) ?? 'US'
-        : 'US',
+      username: profile.data?.username ?? '',
+      country: (profile.data?.country as Alpha2Code) ?? 'US',
     },
   })
 
@@ -176,16 +189,20 @@ function ProfileForm({ userId }: { userId: string }) {
         })
       },
       onError: err => {
-        form.setError(
-          'username',
-          {
-            message:
-              err.code === '23505'
-                ? 'Username is already taken'
-                : 'Something went wrong!',
-          },
-          { shouldFocus: true }
-        )
+        if (err.code === '23505') {
+          form.setError(
+            'username',
+            {
+              message: 'Username is already taken',
+            },
+            { shouldFocus: true }
+          )
+        } else {
+          toaster.toast({
+            title: 'Uh oh! Something went wrong.',
+            variant: 'destructive',
+          })
+        }
       },
     }
   )
@@ -202,7 +219,7 @@ function ProfileForm({ userId }: { userId: string }) {
           control={form.control}
           name="username"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="max-w-[300px]">
               <FormLabel>Username</FormLabel>
               <FormControl>
                 <Input placeholder="wordle-speedster" {...field} />

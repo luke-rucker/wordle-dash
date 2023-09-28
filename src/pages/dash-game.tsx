@@ -54,12 +54,24 @@ export function DashGame() {
 }
 
 function Game({ gameId }: { gameId: string }) {
-  const navigate = useNavigate()
+  const session = useSession()
+  const profile = useQuery(
+    supabase
+      .from('profiles')
+      .select('username,country')
+      .eq('id', session?.user.id as string)
+      .limit(1)
+      .single(),
+    { enabled: !!session }
+  )
 
   const socket = usePartySocket({
     host: PARTY_KIT_HOST,
     party: 'dashGame',
     room: gameId!,
+    query: profile.data?.country
+      ? { country: profile.data?.country }
+      : undefined,
   })
 
   const client = React.useMemo(
@@ -72,31 +84,16 @@ function Game({ gameId }: { gameId: string }) {
 
   const { usePartyMessage } = createPartyHooks(client)
 
-  const session = useSession()
-  const profile = useQuery(
-    supabase
-      .from('profiles')
-      .select('username,country')
-      .eq('id', session?.user.id as string),
-    { enabled: !!session }
-  )
+  const navigate = useNavigate()
 
   const anonUsername = useReadLocalStorage<string>('username')
-  const username = () => {
-    if (profile.data && profile.data[0].username) {
-      return profile.data[0].username
-    } else {
-      return anonUsername
-    }
-  }
 
   usePartyMessage('ready', () => {
-    const u = username()
-    if (!u) return navigate('/')
+    if (!profile?.data?.username || !anonUsername) return navigate('/')
     client.send({
       type: 'knockKnock',
       token: session?.access_token ?? sessionStorage.getItem('token'),
-      username: u,
+      username: (profile?.data?.username ?? anonUsername) as string,
     })
   })
 
@@ -145,6 +142,7 @@ function Game({ gameId }: { gameId: string }) {
 
   const emptyState: OtherPlayerState = {
     id: '',
+    type: 'anon',
     username: 'Your opponent',
     country: null,
     guesses: [],

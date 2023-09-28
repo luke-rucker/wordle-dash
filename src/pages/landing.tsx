@@ -35,7 +35,7 @@ import { useSession } from '@supabase/auth-helpers-react'
 import usePartySocket from 'partysocket/react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useLocalStorage, useReadLocalStorage } from 'usehooks-ts'
 
 export function Landing() {
@@ -197,7 +197,9 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
     supabase
       .from('profiles')
       .select('username,country')
-      .eq('id', session?.user.id as string),
+      .eq('id', session?.user.id as string)
+      .limit(1)
+      .single(),
     { enabled: !!session }
   )
 
@@ -207,7 +209,7 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
     return (
       <div className="w-full">
         <p className="mb-3">
-          Playing as {profile.data![0].username}.{' '}
+          Playing as {profile.data?.username}.{' '}
           <Button
             variant="link"
             onClick={() => supabase.auth.signOut()}
@@ -248,7 +250,11 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
       <h3 className="text-lg font-semibold">Play with an Account</h3>
       <p className="text-xs text-muted-foreground mb-6">
         When you play with an account you can save the stats of your games and
-        compete on the global leaderboard.
+        compete on the{' '}
+        <Link to="/stats" className="underline">
+          global leaderboard
+        </Link>
+        .
       </p>
 
       <GoogleButton />

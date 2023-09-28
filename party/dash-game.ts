@@ -1,12 +1,12 @@
 import type * as Party from 'partykit/server'
 import { createPartyRpc } from 'partyrpc/server'
-import { tokens } from './lib/tokens'
+import { User, tokens } from './lib/tokens'
 import * as Dash from './lib/dash-game'
 import { nullable, object, string, length } from 'valibot'
 import { attachments } from '@party/lib/attachments'
 import { SOLUTION_SIZE } from '@party/lib/constants'
 import { MAIN_ROOM } from '@party/main'
-import { createSupabaseClient } from '@party/lib/supabase'
+import { type Supabase, createSupabaseClient } from '@party/lib/supabase'
 import { isValidGuess } from '@party/lib/words/valid-guesses'
 
 type ReadyResponse = { type: 'ready' }
@@ -51,31 +51,35 @@ export const safeGame = rpc.events({
       username: string(),
     }),
     async onMessage(message, ws, party, game) {
-      let userId: string | null = null
+      let user: User | null = null
       let token: string | undefined
 
       if (message.token !== null) {
-        userId = await tokens.verify(
+        user = await tokens.verify(
           message.token,
           party.env.JWT_SECRET as string
         )
       }
 
-      if (userId === null) {
-        const newToken = await tokens.issue(party.env.JWT_SECRET as string)
-        userId = newToken.userId
-        token = newToken.token
+      if (user === null) {
+        const issued = await tokens.issue(party.env.JWT_SECRET as string)
+        user = issued.user
+        token = issued.token
       }
 
-      if (game.isFull() && !game.hasPlayer(userId)) {
+      if (game.isFull() && !game.hasPlayer(user.id)) {
         return rpc.send(ws, { type: 'fullGame' })
       }
 
-      attachments.set(ws, { userId })
-      game.addPlayer(userId, message.username, attachments.get(ws).country)
+      attachments.set(ws, { user })
+      game.addPlayer({
+        ...user,
+        username: message.username,
+        country: attachments.get(ws).country,
+      })
       rpc.send(ws, {
         type: 'welcome',
-        userId,
+        userId: user.id,
         token,
       })
 
@@ -95,30 +99,30 @@ export const safeGame = rpc.events({
       guess: nullable(string([length(1)])),
     }),
     onMessage(message, ws, party, game) {
-      const { userId } = attachments.get(ws)
-      if (!userId) return
+      const { user } = attachments.get(ws)
+      if (!user) return
       if (
-        game.players[userId].currentGuess.length === SOLUTION_SIZE &&
+        game.players[user.id].currentGuess.length === SOLUTION_SIZE &&
         message.guess !== null
       )
         return
-      game.typeGuess(userId, message.guess)
+      game.typeGuess(user.id, message.guess)
       broadcastGame(game, party)
     },
   },
   submitGuess: {
     schema: object({}),
     onMessage(message, ws, party, game) {
-      const { userId } = attachments.get(ws)
-      if (!userId) return
+      const { user } = attachments.get(ws)
+      if (!user) return
 
-      if (game.players[userId].currentGuess.length !== SOLUTION_SIZE) return
+      if (game.players[user.id].currentGuess.length !== SOLUTION_SIZE) return
 
-      if (!isValidGuess(game.players[userId].currentGuess)) {
+      if (!isValidGuess(game.players[user.id].currentGuess)) {
         return rpc.send(ws, { type: 'badGuess' })
       }
 
-      game.submitGuess(userId)
+      game.submitGuess(user.id)
 
       if (!game.isGameOver()) {
         broadcastGame(game, party)
@@ -129,11 +133,11 @@ export const safeGame = rpc.events({
 
 function broadcastGame(game: Dash.Game, party: Party.Party, skip?: string) {
   for (const ws of party.getConnections()) {
-    const { userId } = attachments.get(ws)
-    if (!userId || userId === skip) return
+    const { user } = attachments.get(ws)
+    if (!user || user.id === skip) return
     rpc.send(ws, {
       type: 'tick',
-      game: game.stateForPlayer(userId),
+      game: game.stateForPlayer(user.id),
     })
   }
 }
@@ -144,18 +148,23 @@ export type SafeGameResponses = typeof safeGame.responses
 export default class Server implements Party.PartyServer {
   private game?: Dash.Game
 
+  private supabase: Supabase
+
   constructor(readonly party: Party.Party) {
     this.party = party
+    this.supabase = createSupabaseClient(this.party.env)
   }
 
   async onStart() {
-    const supabase = createSupabaseClient(this.party.env)
-    const { data } = await supabase.rpc('random_solution').throwOnError()
+    const { data } = await this.supabase.rpc('random_solution').throwOnError()
 
     this.game = new Dash.Game({
       solution: data!,
       onGameOver: () => {
         if (!this.game || !this.game.gameOver) return
+
+        this.updateStats().catch(err => console.log(err))
+
         rpc.broadcast(this.party, {
           type: 'gameOver',
           state: this.game.gameOver,
@@ -171,7 +180,11 @@ export default class Server implements Party.PartyServer {
     ws: Party.PartyConnection,
     ctx: Party.PartyConnectionContext
   ) {
-    attachments.set(ws, { country: ctx.request.cf?.country as string | null })
+    const country =
+      new URL(ctx.request.url).searchParams.get('country') ??
+      (ctx.request.cf?.country as string | null)
+
+    attachments.set(ws, { country })
     this.updateConnections('connect')
     if (this.game) {
       rpc.send(ws, { type: 'ready' })
@@ -187,7 +200,7 @@ export default class Server implements Party.PartyServer {
     await this.updateConnections('disconnect')
   }
 
-  async updateConnections(type: 'connect' | 'disconnect') {
+  private async updateConnections(type: 'connect' | 'disconnect') {
     const mainParty = this.party.context.parties.main
     const mainRoom = mainParty.get(MAIN_ROOM)
 
@@ -198,5 +211,48 @@ export default class Server implements Party.PartyServer {
         gameType: 'dash',
       }),
     })
+  }
+
+  private async updateStats() {
+    const gameOver = this.game?.gameOver
+    if (!this.game || !gameOver) return
+
+    if (gameOver.type === 'win') {
+      const winner = gameOver.playerId
+      const loser = Object.keys(this.game.players).filter(
+        player => player !== winner
+      )[0]
+
+      await Promise.all([
+        this.game.players[winner].type === 'verified'
+          ? this.supabase
+              .rpc('set_win', { user_id: winner, game_type: false })
+              .throwOnError()
+          : Promise.resolve(),
+        loser && this.game.players[loser].type === 'verified'
+          ? this.supabase
+              .rpc('set_loss', { user_id: winner, game_type: false })
+              .throwOnError()
+          : Promise.resolve(),
+      ])
+    } else if (gameOver.type === 'timeLimit') {
+      const loser = gameOver.playerId
+      const winner = Object.keys(this.game.players).filter(
+        player => player !== loser
+      )[0]
+
+      await Promise.all([
+        winner && this.game.players[winner].type === 'verified'
+          ? this.supabase
+              .rpc('set_win', { user_id: winner, game_type: false })
+              .throwOnError()
+          : Promise.resolve(),
+        this.game.players[loser].type === 'verified'
+          ? this.supabase
+              .rpc('set_loss', { user_id: winner, game_type: false })
+              .throwOnError()
+          : Promise.resolve(),
+      ])
+    }
   }
 }

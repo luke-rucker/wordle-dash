@@ -1,10 +1,10 @@
 import { type LetterStatus, compare } from './words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
+import type { User } from './tokens'
 
 export type Guess = { raw: string; computed: Array<LetterStatus> }
 
-export type PlayerState = {
-  id: string
+export type PlayerState = User & {
   username: string
   country: string | null
   guessBy?: number
@@ -12,8 +12,7 @@ export type PlayerState = {
   currentGuess: string
 }
 
-export type OtherPlayerState = {
-  id: string
+export type OtherPlayerState = User & {
   username: string
   country: string | null
   guessBy?: number
@@ -67,13 +66,16 @@ export class Game {
 
   isFull = () => Object.keys(this.players).length >= this.maxPlayers
 
-  addPlayer(id: string, username: string, country: string | null) {
-    if (this.hasPlayer(id)) return
+  addPlayer(user: {
+    id: string
+    type: User['type']
+    username: string
+    country: string | null
+  }) {
+    if (this.hasPlayer(user.id)) return
 
-    this.players[id] = {
-      id,
-      username,
-      country,
+    this.players[user.id] = {
+      ...user,
       currentGuess: '',
       guesses: [],
     }

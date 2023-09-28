@@ -4,6 +4,11 @@ import { useInterval } from 'usehooks-ts'
 import * as React from 'react'
 import i18nCountries, { type Alpha2Code } from 'i18n-iso-countries'
 import english from 'i18n-iso-countries/langs/en.json'
+import { useQuery } from '@tanstack/react-query'
+import { PARTY_KIT_URL } from '@/constants'
+import { useQuery as useSupabaseQuery } from '@supabase-cache-helpers/postgrest-react-query'
+import { useSession } from '@supabase/auth-helpers-react'
+import { supabase } from '@/lib/supabase'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -53,4 +58,48 @@ export function getFlag(countryCode: string | null) {
     .split('')
     .map(char => 127397 + char.charCodeAt(0))
   return String.fromCodePoint(...codePoints)
+}
+
+export function useDetectCountry(options?: { enabled?: boolean }) {
+  const query = useQuery<Alpha2Code>({
+    queryKey: ['detectCountry'],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`${PARTY_KIT_URL}/parties/main/countries`)
+        if (!res.ok) return 'US'
+        const json = (await res.json()) as { country: Alpha2Code }
+        return json?.country ?? 'US'
+      } catch (err) {
+        return 'US'
+      }
+    },
+    enabled: options?.enabled,
+    staleTime: Infinity,
+  })
+
+  return query.data ?? 'US'
+}
+
+export function useCurrentLocale() {
+  const session = useSession()
+
+  const profile = useSupabaseQuery(
+    supabase
+      .from('profiles')
+      .select('country')
+      .eq('id', session?.user.id as string)
+      .limit(1)
+      .single(),
+    { enabled: !!session }
+  )
+
+  const detectedCountry = useDetectCountry({ enabled: !session })
+
+  const locale = (country: string) => `${country.toLowerCase()}-${country}`
+
+  if (session && profile.data?.country) {
+    return locale(profile.data.country)
+  }
+
+  return locale(detectedCountry)
 }

@@ -11,6 +11,7 @@ import { EnsureProfile } from '@/components/ensure-profile'
 import { Settings } from '@/pages/settings'
 import { CoopGame } from '@/pages/coop-game'
 import { Splash } from '@/components/splash'
+import { Stats } from '@/pages/stats'
 
 const queryClient = new QueryClient()
 
@@ -25,6 +26,7 @@ export function App() {
                 <Route element={<Layout />}>
                   <Route index element={<Landing />} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="stats" element={<Stats />} />
                   <Route path="coop/:gameId" element={<CoopGame />} />
                   <Route path="dash/:gameId" element={<DashGame />} />
                   <Route path="*" element={<Splash type="404" />} />

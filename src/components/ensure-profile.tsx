@@ -11,7 +11,9 @@ export function EnsureProfile({ children }: { children: React.ReactNode }) {
     supabase
       .from('profiles')
       .select('username,country')
-      .eq('id', auth.session?.user.id as string),
+      .eq('id', auth.session?.user.id as string)
+      .limit(1)
+      .single(),
     { enabled: !!auth.session }
   )
 
@@ -27,11 +29,9 @@ export function EnsureProfile({ children }: { children: React.ReactNode }) {
     return <Splash type="loading" />
   }
 
-  const myProfile = profile.data![0]
-
   return (
     <>
-      {!myProfile.username ? (
+      {!profile.data?.username ? (
         <CompleteProfileModal userId={auth.session.user.id} />
       ) : null}
       {children}

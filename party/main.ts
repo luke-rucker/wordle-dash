@@ -75,6 +75,17 @@ export default class Server implements Party.PartyKitServer {
         )
         await this.party.storage.put('coop', this.coop)
       }
+
+      return new Response(undefined, { status: 204 })
+    }
+
+    if (request.method === 'GET') {
+      return new Response(JSON.stringify({ country: request.cf?.country }), {
+        headers: {
+          'content-type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      })
     }
 
     return new Response(undefined, { status: 204 })
