@@ -336,7 +336,7 @@ function ThemeSwitcher() {
           id="l"
           value="light"
           className={cn(
-            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-white border-white focus:outline-none',
+            'grid grid-cols-5 gap-1 border-4 rounded p-3 bg-white border-white focus:outline-none',
             theme.current === 'light' && 'border-primary'
           )}
         >
@@ -345,14 +345,14 @@ function ThemeSwitcher() {
               <Cell
                 key={`${row}-${index}`}
                 status={status}
-                className="h-5 w-5"
+                className="h-5 w-5 rounded-none"
               />
             ))
           )}
           <RadioGroup.Indicator />
         </RadioGroup.Item>
 
-        <label htmlFor="l" className="block text-center">
+        <label htmlFor="l" className="block text-center pt-1">
           Light
         </label>
       </div>
@@ -362,7 +362,7 @@ function ThemeSwitcher() {
           id="d"
           value="dark"
           className={cn(
-            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-[#04080F] border-[#04080F] focus:outline-none',
+            'grid grid-cols-5 gap-1 border-4 rounded p-3 bg-[#04080F] border-[#04080F] focus:outline-none',
             theme.current === 'dark' && 'border-primary'
           )}
         >
@@ -371,14 +371,14 @@ function ThemeSwitcher() {
               <Cell
                 key={`${row}-${index}`}
                 status={status}
-                className="h-5 w-5"
+                className="h-5 w-5 rounded-none"
               />
             ))
           )}
           <RadioGroup.Indicator />
         </RadioGroup.Item>
 
-        <label className="block text-center" htmlFor="d">
+        <label htmlFor="d" className="block text-center pt-1">
           Dark
         </label>
       </div>

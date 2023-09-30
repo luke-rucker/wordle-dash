@@ -31,7 +31,6 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
-import type { TimeToGuess } from '@party/lib/dash-game'
 import { LetterStatus } from '@party/lib/words/compare'
 import type { GameType } from '@party/lobby'
 import { MAIN_ROOM, type MainMessage } from '@party/main'
@@ -877,7 +876,7 @@ function DashGameBoard({
             <Cell
               key={`${row}-${index}`}
               status={status}
-              className="h-4 md:h-6 w-4 md:w-6 border-2"
+              className="h-4 md:h-6 w-4 md:w-6 border-2 rounded-none"
             />
           ))
         )}
@@ -950,7 +949,7 @@ function CoopGame() {
             <Cell
               key={`${row}-${index}`}
               status={status}
-              className="h-6 w-6 border-2"
+              className="h-6 w-6 border-2 rounded-none"
             />
           ))
         )}

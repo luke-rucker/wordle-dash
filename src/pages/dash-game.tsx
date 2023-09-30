@@ -170,6 +170,17 @@ function Game({ gameId }: { gameId: string }) {
           </Alert>
         ) : null}
 
+        {gameOver ? (
+          <Alert className="absolute top-4 w-fit">
+            <AlertTitle className="mb-0">
+              Game over!{'  '}
+              <Link to="/" className="underline">
+                Go home
+              </Link>
+            </AlertTitle>
+          </Alert>
+        ) : null}
+
         <div className="container flex flex-col items-center space-y-2 md:hidden">
           <GamePreview {...(other ?? emptyState)} />
 
@@ -229,6 +240,12 @@ function GamePreview(player: OtherPlayerState) {
         {player.guessBy ? (
           <Countdown to={player.guessBy} stopped={!!game.gameOver} />
         ) : null}
+        {player.guessBy && game.gameOver?.state.type !== 'timeLimit' ? (
+          <Countdown to={player.guessBy} stopped={!!game.gameOver} />
+        ) : null}
+        {game.gameOver?.state.type === 'timeLimit' ? (
+          <span className="ml-2">00:00</span>
+        ) : null}
       </p>
 
       {typeof guess === 'string' || typeof guess === 'number' ? (
@@ -272,8 +289,12 @@ function GameGrid(player: GameGridProps) {
           {player.country ? ` ${getFlag(player.country)}` : null}
         </span>
 
-        {player.guessBy ? (
+        {player.guessBy && game.gameOver?.state.type !== 'timeLimit' ? (
           <Countdown to={player.guessBy} stopped={!!game.gameOver} />
+        ) : null}
+
+        {game.gameOver?.state.type === 'timeLimit' ? (
+          <span className="ml-2">00:00</span>
         ) : null}
       </p>
 
@@ -331,6 +352,7 @@ function CurrentRow({ guess }: { guess: string | number }) {
           key={index}
           hideLetter={!yourGuess}
           status="typed"
+          className="typed"
         />
       ))}
 

@@ -63,6 +63,7 @@ export class Game {
     this.players = {}
     this.guesses = []
     this.currentTurn = ''
+    this.onGameOver = options.onGameOver
   }
 
   set timeToGuess(timeToGuess: TimeToGuess) {
@@ -133,15 +134,18 @@ export class Game {
     this.players[id].currentGuess = ''
 
     if (letterStatuses.every(status => status === 'c')) {
-      this.setGameOver({ type: 'win', playerId: id, solution: this.solution })
-      return
+      return this.setGameOver({
+        type: 'win',
+        playerId: id,
+        solution: this.solution,
+      })
     }
 
     const other = Object.keys(this.players).filter(player => player !== id)[0]
     this.currentTurn = other
 
     if (this.guesses.length >= this.maxGuesses - 1) {
-      this.maxGuesses += 2
+      this.maxGuesses += 1
     }
 
     if (this.hasTimeToGuess()) {
@@ -151,7 +155,7 @@ export class Game {
         if (this.isGameOver()) return
         this.setGameOver({
           type: 'timeLimit',
-          playerId: this.currentTurn,
+          playerId: other,
           solution: this.solution,
         })
       }, this.timeToGuess * 1000)

@@ -153,6 +153,17 @@ function Game({ gameId }: { gameId: string }) {
           </Alert>
         ) : null}
 
+        {gameOver ? (
+          <Alert className="absolute top-4 w-fit">
+            <AlertTitle className="mb-0">
+              Game over!{'  '}
+              <Link to="/" className="underline">
+                Go home
+              </Link>
+            </AlertTitle>
+          </Alert>
+        ) : null}
+
         <div className="container flex flex-col items-center">
           <GameHeader />
 
@@ -177,7 +188,7 @@ function GameHeader() {
   const { game } = useCoopGame()
 
   return (
-    <div className="w-full max-w-md flex justify-between mb-3">
+    <div className="w-full max-w-lg flex justify-between mb-3">
       <Player
         username={game.you.username}
         country={game.you.country}
@@ -214,7 +225,7 @@ function Player({
     >
       {isYou
         ? `${username}${country ? ` ${getFlag(country)} ` : ''}(You)`
-        : username}
+        : `${username}${country ? ` ${getFlag(country)}` : ''}`}
     </p>
   )
 }
@@ -241,9 +252,12 @@ function GameGrid() {
 
       <p className="text-center py-2">
         {game.you.isCurrentTurn ? 'Enter a guess - ' : "Opponent's turn - "}
-        {game.guessBy ? (
+
+        {game.guessBy && gameOver?.state.type !== 'timeLimit' ? (
           <Countdown to={game.guessBy} stopped={!!gameOver} className="ml-0" />
         ) : null}
+
+        {gameOver?.state.type === 'timeLimit' ? <span>00:00</span> : null}
       </p>
     </div>
   )
@@ -288,9 +302,10 @@ function CurrentRow() {
           key={index}
           hideLetter={!yourGuess}
           className={cn(
+            'typed',
             yourGuess
               ? 'border-blue-500 dark:border-blue-400'
-              : 'border-red-500 dark:border-red-400 ring ring-red-400 dark:ring-red-300'
+              : 'border-red-500 dark:border-red-400 ring-1 ring-offset-1 ring-offset-transparent ring-red-500 dark:ring-red-400'
           )}
         />
       ))}
@@ -385,7 +400,7 @@ function GameOverDialog() {
         <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
           {waiting ? (
             <Waiting
-              lobby="dash"
+              lobby="coop"
               onJoin={gameUrl => {
                 navigate(gameUrl, { state: { realGame: true } })
                 setOpen(false)

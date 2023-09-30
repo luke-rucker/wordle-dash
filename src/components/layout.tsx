@@ -7,7 +7,7 @@ export function Layout() {
     <div className="h-full flex flex-col">
       <header className="border-b h-16">
         <nav className="flex items-center justify-between h-16 container">
-          <Link to="/" className="flex items-center space-x-1">
+          <Link to="/" className="flex items-center space-x-1 hover:opacity-80">
             <div
               role="img"
               aria-label="dashing away"
