@@ -1,7 +1,7 @@
 import { PARTY_KIT_HOST } from '@/constants'
 import { createPartyClient } from 'partyrpc/client'
 import { createPartyHooks } from 'partyrpc/react'
-import type { SafeGameEvents, SafeGameResponses } from '@party/dash-game'
+import type { SafeDashEvents, SafeDashResponses } from '@party/dash-game'
 import * as React from 'react'
 import usePartySocket from 'partysocket/react'
 import {
@@ -15,7 +15,6 @@ import ConfettiExplosion from 'react-confetti-explosion'
 import type {
   GameOverState,
   GameState,
-  Guess,
   OtherPlayerState,
   PlayerState,
 } from '@party/lib/dash-game'
@@ -25,7 +24,7 @@ import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
-import { GameContext } from '@/contexts/game-context'
+import { DashGameContext } from '@/contexts/dash-game-context'
 import {
   Dialog,
   DialogContent,
@@ -35,12 +34,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { useGame } from '@/lib/game'
+import { useDashGame } from '@/lib/game'
 import { Cell } from '@/components/cell'
-import { cn, getFlag, useCountdown } from '@/lib/utils'
+import { cn, getFlag } from '@/lib/utils'
 import { Waiting } from '@/components/waiting'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { useReadLocalStorage } from 'usehooks-ts'
+import { Splash } from '@/components/splash'
+import { Guess } from '@party/lib/shared'
+import { Countdown } from '@/components/countdown'
 
 export function DashGame() {
   const { gameId } = useParams()
@@ -50,7 +52,7 @@ export function DashGame() {
     return <Navigate to="/" replace />
   }
 
-  return <Game gameId={gameId!} key={gameId} />
+  return <Game gameId={gameId!.toLowerCase()} key={gameId} />
 }
 
 function Game({ gameId }: { gameId: string }) {
@@ -76,8 +78,8 @@ function Game({ gameId }: { gameId: string }) {
 
   const client = React.useMemo(
     () =>
-      createPartyClient<SafeGameEvents, SafeGameResponses>(socket, {
-        debug: true,
+      createPartyClient<SafeDashEvents, SafeDashResponses>(socket, {
+        debug: import.meta.env.DEV,
       }),
     [socket]
   )
@@ -85,11 +87,10 @@ function Game({ gameId }: { gameId: string }) {
   const { usePartyMessage } = createPartyHooks(client)
 
   const navigate = useNavigate()
-
   const anonUsername = useReadLocalStorage<string>('username')
 
   usePartyMessage('ready', () => {
-    if (!profile?.data?.username || !anonUsername) return navigate('/')
+    if (!profile?.data?.username && !anonUsername) return navigate('/')
     client.send({
       type: 'knockKnock',
       token: session?.access_token ?? sessionStorage.getItem('token'),
@@ -106,6 +107,7 @@ function Game({ gameId }: { gameId: string }) {
   })
 
   usePartyMessage('fullGame', () => {
+    // TODO: error
     navigate('/', { state: { fullGame: true } })
   })
 
@@ -134,7 +136,7 @@ function Game({ gameId }: { gameId: string }) {
   }, [gameOver, socket])
 
   if (!game || !game.you || !userId) {
-    return <div className="container">Loading....</div>
+    return <Splash type="loading" />
   }
 
   const { you, others } = game
@@ -150,7 +152,7 @@ function Game({ gameId }: { gameId: string }) {
   }
 
   return (
-    <GameContext.Provider value={{ userId, badGuess, game, gameOver }}>
+    <DashGameContext.Provider value={{ userId, badGuess, game, gameOver }}>
       {gameOver ? <GameOverDialog /> : null}
 
       <div className="h-full py-6 md:pt-20 flex flex-col items-center justify-between relative">
@@ -188,14 +190,14 @@ function Game({ gameId }: { gameId: string }) {
           disabled={!!gameOver || !other}
         />
       </div>
-    </GameContext.Provider>
+    </DashGameContext.Provider>
   )
 }
 
 type GameGridProps = PlayerState | OtherPlayerState
 
 function GamePreview(player: OtherPlayerState) {
-  const game = useGame()
+  const game = useDashGame()
 
   const guess = (() => {
     if (game.gameOver) {
@@ -239,7 +241,7 @@ function GamePreview(player: OtherPlayerState) {
 }
 
 function GameGrid(player: GameGridProps) {
-  const game = useGame()
+  const game = useDashGame()
 
   const isYou = game.userId === player.id
 
@@ -290,26 +292,17 @@ function GameGrid(player: GameGridProps) {
   )
 }
 
-function Countdown({ to, stopped }: { to: number; stopped?: boolean }) {
-  const countdown = useCountdown(to, stopped)
-
-  return <span className="ml-2">{countdown}</span>
-}
-
-type RowProps = {
+function Row({
+  children,
+  className,
+}: {
   children: React.ReactNode
   className?: string
-}
-
-function Row({ children, className }: RowProps) {
+}) {
   return <div className={cn('flex gap-1', className)}>{children}</div>
 }
 
-type CompletedRowProps = {
-  guess: Guess | Array<LetterStatus>
-}
-
-function CompletedRow({ guess }: CompletedRowProps) {
+function CompletedRow({ guess }: { guess: Guess | Array<LetterStatus> }) {
   return (
     <Row>
       {Array.isArray(guess)
@@ -323,16 +316,12 @@ function CompletedRow({ guess }: CompletedRowProps) {
   )
 }
 
-type CurrentRowProps = {
-  guess: string | number
-}
-
-function CurrentRow({ guess }: CurrentRowProps) {
+function CurrentRow({ guess }: { guess: string | number }) {
   const yourGuess = typeof guess === 'string'
   const letters = yourGuess ? guess.split('') : Array.from(Array(guess))
   const emptyCells = Array.from(Array(SOLUTION_SIZE - letters.length))
 
-  const { badGuess } = useGame()
+  const { badGuess } = useDashGame()
 
   return (
     <Row className={cn(yourGuess && badGuess ? 'jiggle' : null)}>
@@ -370,7 +359,7 @@ function GameOverDialog() {
 
   const navigate = useNavigate()
 
-  const { gameOver, userId } = useGame()
+  const { gameOver, userId } = useDashGame()
 
   if (!gameOver) {
     return null

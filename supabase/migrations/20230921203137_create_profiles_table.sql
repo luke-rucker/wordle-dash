@@ -18,7 +18,7 @@ create table
 alter table public.profiles enable row level security;
 
 create
-or replace function is_not_updating_stats (
+or replace function public.is_not_updating_stats (
   _id UUID,
   _dash_wins bigint,
   _dash_losses bigint,

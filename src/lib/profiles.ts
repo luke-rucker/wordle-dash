@@ -13,8 +13,8 @@ import {
 
 export const anonProfileSchema = object({
   username: string('A username is required', [
-    minLength(3, 'Needs to be at least 3 characters'),
-    maxLength(24, 'Cannot be more than 24 characters'),
+    minLength(2, 'Needs to be at least 2 characters'),
+    maxLength(20, 'Cannot be more than 20 characters'),
   ]),
 })
 
@@ -22,8 +22,8 @@ export type AnonProfileData = Output<typeof anonProfileSchema>
 
 export const profileSchema = object({
   username: string('A username is required', [
-    minLength(3, 'Needs to be at least 3 characters'),
-    maxLength(24, 'Cannot be more than 24 characters'),
+    minLength(2, 'Needs to be at least 2 characters'),
+    maxLength(20, 'Cannot be more than 20 characters'),
     regex(
       /^[a-zA-Z0-9-_]+$/,
       'Must only include letters, numbers, dashes, and underscores'

@@ -1,10 +1,23 @@
-import { GameContext } from '@/contexts/game-context'
+import { CoopGameContext } from '@/contexts/coop-game-context'
+import { DashGameContext } from '@/contexts/dash-game-context'
 import * as React from 'react'
 
-export function useGame() {
-  const gameContext = React.useContext(GameContext)
+export function useDashGame() {
+  const gameContext = React.useContext(DashGameContext)
   if (!gameContext) {
-    throw new Error('useGame must be used within a GameContext.Provider')
+    throw new Error(
+      'useCoopGame must be used within a DashGameContext.Provider'
+    )
+  }
+  return gameContext
+}
+
+export function useCoopGame() {
+  const gameContext = React.useContext(CoopGameContext)
+  if (!gameContext) {
+    throw new Error(
+      'useCoopGame must be used within a CoopGameContext.Provider'
+    )
   }
   return gameContext
 }

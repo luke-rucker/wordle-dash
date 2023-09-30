@@ -17,6 +17,8 @@ import {
   InfoIcon,
   ChevronsUpDown,
   Check,
+  Copy,
+  Infinity,
 } from 'lucide-react'
 
 export type Icon = LucideIcon
@@ -36,6 +38,8 @@ export const Icons = {
   Info: InfoIcon,
   ChevronsUpDown,
   Check,
+  Copy,
+  Infinity,
   Spinner: (props: LucideProps) => (
     <Loader2 {...props} className={cn('animate-spin', props.className)} />
   ),

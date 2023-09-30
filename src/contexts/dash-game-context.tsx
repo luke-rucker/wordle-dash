@@ -15,4 +15,4 @@ export type GameValue = {
   }
 }
 
-export const GameContext = React.createContext<GameValue | null>(null)
+export const DashGameContext = React.createContext<GameValue | null>(null)

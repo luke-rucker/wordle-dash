@@ -1,8 +1,11 @@
 {
   "name": "word-dash",
   "main": "party/main.ts",
+  "compatibilityDate": "2023-09-28",
   "parties": {
     "lobby": "party/lobby.ts",
+    "privateLobby": "party/private-lobby.ts",
+    "coopGame": "party/coop-game.ts",
     "dashGame": "party/dash-game.ts"
   }
 }

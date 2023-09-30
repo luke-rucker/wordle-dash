@@ -29,7 +29,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { useTheme } from '@/contexts/theme-context'
-import { ProfileData, profileSchema } from '@/lib/profiles'
+import {
+  AnonProfileData,
+  ProfileData,
+  anonProfileSchema,
+  profileSchema,
+} from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
 import { cn, countries, countryCodes, getFlag } from '@/lib/utils'
 import { valibotResolver } from '@hookform/resolvers/valibot'
@@ -43,7 +48,6 @@ import { useSession } from '@supabase/auth-helpers-react'
 import { Alpha2Code } from 'i18n-iso-countries'
 import { useForm } from 'react-hook-form'
 import { useLocalStorage } from 'usehooks-ts'
-import { Output, maxLength, minLength, object, string } from 'valibot'
 
 export function Settings() {
   const session = useSession()
@@ -82,15 +86,6 @@ export function Settings() {
     </div>
   )
 }
-
-const anonProfileSchema = object({
-  username: string('A username is required', [
-    minLength(3, 'Needs to be at least 3 characters'),
-    maxLength(24, 'Cannot be more than 24 characters'),
-  ]),
-})
-
-type AnonProfileData = Output<typeof anonProfileSchema>
 
 function AnonProfileForm() {
   const [username, setUsername] = useLocalStorage('username', '')

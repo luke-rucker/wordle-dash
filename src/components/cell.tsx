@@ -12,7 +12,7 @@ export function Cell({ status, hideLetter, letter, className }: CellProps) {
   return (
     <div
       className={cn(
-        'h-14 w-14 flex items-center justify-center border-2 text-4xl font-bold uppercase',
+        'h-14 w-14 flex items-center justify-center border-2 text-4xl font-bold uppercase rounded',
         {
           'border-primary': status === 'typed',
           'border-gray-600 bg-gray-600 text-white': status === 'a',

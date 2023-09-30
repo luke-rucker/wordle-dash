@@ -34,7 +34,7 @@ export function useCountdown(to: number, stopped?: boolean) {
       if (seconds <= 0) return
       setSeconds(Math.ceil((to - Date.now()) / 1000))
     },
-    seconds <= 0 || stopped ? 0 : 1000
+    stopped || seconds <= 0 ? null : 1000
   )
 
   return formatSeconds(seconds)

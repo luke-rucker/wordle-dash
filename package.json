@@ -37,7 +37,7 @@
     "cmdk": "^0.2.0",
     "i18n-iso-countries": "^7.7.0",
     "lucide-react": "^0.252.0",
-    "partykit": "0.0.6",
+    "partykit": "^0.0.24",
     "partyrpc": "^0.1.0",
     "partysocket": "0.0.0-e57200d",
     "react": "^18.2.0",

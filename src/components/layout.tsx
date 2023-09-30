@@ -6,7 +6,7 @@ export function Layout() {
   return (
     <div className="h-full flex flex-col">
       <header className="border-b h-16">
-        <div className="flex items-center justify-between h-16 container">
+        <nav className="flex items-center justify-between h-16 container">
           <Link to="/" className="flex items-center space-x-1">
             <div
               role="img"
@@ -21,28 +21,35 @@ export function Layout() {
             </h1>
           </Link>
 
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <Button asChild size="icon" variant="ghost">
-              <Link to="stats" title="Stats">
-                <Icons.Stats className="h-6 w-6" />
-                <span className="sr-only">Stats</span>
-              </Link>
-            </Button>
+          <ul className="flex items-center space-x-2 md:space-x-3">
+            <li>
+              <Button asChild size="icon" variant="ghost">
+                <Link to="stats" title="Stats">
+                  <Icons.Stats className="h-6 w-6" />
+                  <span className="sr-only">Stats</span>
+                </Link>
+              </Button>
+            </li>
 
-            <Button asChild size="icon" variant="ghost">
-              <Link to="settings" title="Settings">
-                <Icons.Settings className="h-6 w-6" />
-                <span className="sr-only">Settings</span>
-              </Link>
-            </Button>
+            <li>
+              <Button asChild size="icon" variant="ghost">
+                <Link to="settings" title="Settings">
+                  <Icons.Settings className="h-6 w-6" />
+                  <span className="sr-only">Settings</span>
+                </Link>
+              </Button>
+            </li>
 
-            <Button asChild size="icon" variant="ghost">
-              <Link to="/">
-                <Icons.Help className="h-6 w-6" />
-              </Link>
-            </Button>
-          </div>
-        </div>
+            <li>
+              <Button asChild size="icon" variant="ghost">
+                <Link to="help">
+                  <Icons.Help className="h-6 w-6" />
+                  <span className="sr-only">Help</span>
+                </Link>
+              </Button>
+            </li>
+          </ul>
+        </nav>
       </header>
 
       <Outlet />

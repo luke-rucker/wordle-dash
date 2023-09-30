@@ -1,6 +1,7 @@
 import { GoogleButton } from '@/components/google-button'
 import { Icons } from '@/components/icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { supabase } from '@/lib/supabase'
 import { getFlag, useCurrentLocale } from '@/lib/utils'
+import * as React from 'react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
 
@@ -45,28 +47,75 @@ export function Stats() {
     return wins / losses
   }
 
+  const [copied, setCopied] = React.useState(false)
+
   return (
     <div className="flex-grow container py-6 md:py-16">
-      <div className="space-y-0.5">
-        <h2 className="text-2xl font-bold tracking-tight">Stats</h2>
+      <div className="flex flex-col md:flex-row md:justify-between">
+        <div>
+          <div className="space-y-0.5">
+            <h2 className="text-2xl font-bold tracking-tight">Stats</h2>
 
-        <p className="text-muted-foreground">
-          See how your Wordle skils match up against other players around the
-          world.
-        </p>
+            <p className="text-muted-foreground">
+              See how your Wordle skils match up against other players around
+              the world.
+            </p>
+          </div>
+
+          {!session ? (
+            <Alert className="max-w-lg mt-4">
+              <Icons.Info className="h-4 w-4" />
+              <AlertTitle>You're signed out</AlertTitle>
+              <AlertDescription>
+                You can sign into or create your account to save your stats and
+                compete on the leaderboard.
+                <GoogleButton redirectTo="/stats" className="mt-2" />
+              </AlertDescription>
+            </Alert>
+          ) : null}
+        </div>
+
+        {session ? (
+          <Button
+            aria-disabled={myStats.isLoading}
+            className="mt-4"
+            onClick={async () => {
+              if (!myStats.data) return
+              const { rank, wins, losses, streak } = myStats.data
+              if (
+                !rank ||
+                typeof wins !== 'number' ||
+                typeof losses !== 'number'
+              )
+                return
+
+              const stats = `My Wordle Dash Stats\n\n🏅 #${rank} Player in the world\n🏆 ${wins} Wins\n😔 ${losses} Losses\n🔥 ${
+                streak ?? 0
+              } Win Streak\n\nPlay at wordledash.com :)`
+
+              await navigator.clipboard
+                .writeText(stats)
+                .then(() => {
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2500)
+                })
+                .catch(() => {})
+            }}
+          >
+            {copied ? (
+              <>
+                <Icons.Check className="h-4 w-4 mr-2" />
+                Copied stats
+              </>
+            ) : (
+              <>
+                <Icons.Share className="h-4 w-4 mr-2" />
+                Share
+              </>
+            )}
+          </Button>
+        ) : null}
       </div>
-
-      {!session ? (
-        <Alert className="max-w-lg mt-4">
-          <Icons.Info className="h-4 w-4" />
-          <AlertTitle>You're signed out</AlertTitle>
-          <AlertDescription>
-            You can sign into or create your account to save your stats and
-            compete on the leaderboard.
-            <GoogleButton redirectTo="/stats" className="mt-2" />
-          </AlertDescription>
-        </Alert>
-      ) : null}
 
       <Separator className="my-6" />
 
@@ -80,7 +129,7 @@ export function Stats() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Rank</TableHead>
+            <TableHead>Rank</TableHead>
             <TableHead>Username</TableHead>
             <TableHead>Wins</TableHead>
             <TableHead>Losses</TableHead>
@@ -121,9 +170,9 @@ export function Stats() {
 
 function StatSection({
   rank,
-  streak,
-  wins,
-  losses,
+  streak = 0,
+  wins = 0,
+  losses = 0,
 }: {
   rank?: number | null
   streak?: number | null
@@ -143,24 +192,24 @@ function StatSection({
       />
 
       <Stat
-        title="Streak"
-        icon="🔥"
-        description="Number of consecutive wins"
-        value={streak ? formatter.format(streak) : '-'}
-      />
-
-      <Stat
         title="Wins"
         icon="🏆"
         description="Wins across all game modes"
-        value={wins ? formatter.format(wins) : '-'}
+        value={typeof wins === 'number' ? formatter.format(wins) : '-'}
       />
 
       <Stat
         title="Losses"
         icon="😔"
         description="Losses across all game modes"
-        value={losses ? formatter.format(losses) : '-'}
+        value={typeof losses === 'number' ? formatter.format(losses) : '-'}
+      />
+
+      <Stat
+        title="Streak"
+        icon="🔥"
+        description="Number of consecutive wins"
+        value={typeof streak === 'number' ? formatter.format(streak) : '-'}
       />
     </div>
   )

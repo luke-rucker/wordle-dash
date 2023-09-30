@@ -1,3 +1,5 @@
+import { LoadingDots } from '@/components/loading-dots'
+
 export function Splash({ type }: { type: 'loading' | '404' }) {
   return (
     <main className="h-full flex flex-col items-center justify-center">
@@ -5,7 +7,7 @@ export function Splash({ type }: { type: 'loading' | '404' }) {
         <span
           role="img"
           aria-label="dashing away"
-          className=" inline-block rotate-180 text-2xl leading-none"
+          className="inline-block rotate-180 text-2xl leading-none mr-1"
         >
           💨
         </span>
@@ -13,7 +15,12 @@ export function Splash({ type }: { type: 'loading' | '404' }) {
       </h2>
 
       <p className="text-base text-muted-foreground">
-        {type === 'loading' ? 'Loading...' : null}
+        {type === 'loading' ? (
+          <>
+            Loading
+            <LoadingDots />
+          </>
+        ) : null}
         {type === '404' ? '404 | Not Found' : null}
       </p>
     </main>

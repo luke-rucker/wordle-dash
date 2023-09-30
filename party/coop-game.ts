@@ -1,7 +1,7 @@
 import type * as Party from 'partykit/server'
 import { createPartyRpc } from 'partyrpc/server'
 import { User, tokens } from './lib/tokens'
-import * as Dash from './lib/dash-game'
+import * as Coop from './lib/coop-game'
 import { nullable, object, string, length } from 'valibot'
 import { attachments } from '@party/lib/attachments'
 import { SOLUTION_SIZE } from '@party/lib/constants'
@@ -22,13 +22,13 @@ type FullGameResponse = { type: 'fullGame' }
 
 type TickResponse = {
   type: 'tick'
-  game: Dash.GameState
+  game: Coop.GameState
 }
 
 type GameOverResponse = {
   type: 'gameOver'
-  state: Dash.GameOverState
-  game: Dash.Game['players']
+  state: Coop.GameOverState
+  game: Coop.Game['players']
 }
 
 type BadGuessResponse = {
@@ -43,7 +43,7 @@ type PartyResponses =
   | GameOverResponse
   | BadGuessResponse
 
-const rpc = createPartyRpc<PartyResponses, Dash.Game>()
+const rpc = createPartyRpc<PartyResponses, Coop.Game>()
 
 export const safeGame = rpc.events({
   knockKnock: {
@@ -103,11 +103,13 @@ export const safeGame = rpc.events({
     onMessage(message, ws, party, game) {
       const { user } = attachments.get(ws)
       if (!user) return
+      if (game.currentTurn !== user.id) return
       if (
         game.players[user.id].currentGuess.length === SOLUTION_SIZE &&
         message.guess !== null
       )
         return
+
       game.typeGuess(user.id, message.guess)
       broadcastGame(game, party)
     },
@@ -118,6 +120,7 @@ export const safeGame = rpc.events({
       const { user } = attachments.get(ws)
       if (!user) return
 
+      if (game.currentTurn !== user.id) return
       if (game.players[user.id].currentGuess.length !== SOLUTION_SIZE) return
 
       if (!isValidGuess(game.players[user.id].currentGuess)) {
@@ -133,7 +136,7 @@ export const safeGame = rpc.events({
   },
 })
 
-function broadcastGame(game: Dash.Game, party: Party.Party, skip?: string) {
+function broadcastGame(game: Coop.Game, party: Party.Party, skip?: string) {
   for (const ws of party.getConnections()) {
     const { user } = attachments.get(ws)
     if (!user || user.id === skip) return
@@ -144,11 +147,11 @@ function broadcastGame(game: Dash.Game, party: Party.Party, skip?: string) {
   }
 }
 
-export type SafeDashEvents = typeof safeGame.events
-export type SafeDashResponses = typeof safeGame.responses
+export type SafeCoopEvents = typeof safeGame.events
+export type SafeCoopResponses = typeof safeGame.responses
 
 export default class Server implements Party.Server {
-  private game?: Dash.Game
+  private game?: Coop.Game
 
   private supabase: Supabase
 
@@ -160,7 +163,7 @@ export default class Server implements Party.Server {
   async onStart() {
     const { data } = await this.supabase.rpc('random_solution').throwOnError()
 
-    this.game = new Dash.Game({
+    this.game = new Coop.Game({
       solution: data!,
       onGameOver: () => {
         if (!this.game || !this.game.gameOver) return
@@ -222,7 +225,7 @@ export default class Server implements Party.Server {
       method: 'POST',
       body: JSON.stringify({
         type,
-        gameType: 'dash',
+        gameType: 'coop',
       }),
     })
   }
@@ -240,12 +243,12 @@ export default class Server implements Party.Server {
       await Promise.all([
         this.game.players[winner].type === 'verified'
           ? this.supabase
-              .rpc('set_win', { user_id: winner, game_type: false })
+              .rpc('set_win', { user_id: winner, game_type: true })
               .throwOnError()
           : Promise.resolve(),
         loser && this.game.players[loser].type === 'verified'
           ? this.supabase
-              .rpc('set_loss', { user_id: loser, game_type: false })
+              .rpc('set_loss', { user_id: loser, game_type: true })
               .throwOnError()
           : Promise.resolve(),
       ])
@@ -258,12 +261,12 @@ export default class Server implements Party.Server {
       await Promise.all([
         winner && this.game.players[winner].type === 'verified'
           ? this.supabase
-              .rpc('set_win', { user_id: winner, game_type: false })
+              .rpc('set_win', { user_id: winner, game_type: true })
               .throwOnError()
           : Promise.resolve(),
         this.game.players[loser].type === 'verified'
           ? this.supabase
-              .rpc('set_loss', { user_id: loser, game_type: false })
+              .rpc('set_loss', { user_id: loser, game_type: true })
               .throwOnError()
           : Promise.resolve(),
       ])

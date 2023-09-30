@@ -1,8 +1,7 @@
 import { type LetterStatus, compare } from './words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import type { User } from './tokens'
-
-export type Guess = { raw: string; computed: Array<LetterStatus> }
+import { Guess, TimeToGuess } from '@party/lib/shared'
 
 export type PlayerState = User & {
   username: string
@@ -33,10 +32,8 @@ export type GameOverState =
     }
   | { type: 'noGuesses'; solution: string }
 
-type TimeToGuess = 30 | 60
-
 export class Game {
-  timeToGuess?: TimeToGuess
+  _timeToGuess?: TimeToGuess | null
 
   solution: string
 
@@ -55,14 +52,26 @@ export class Game {
     timeToGuess?: TimeToGuess
     onGameOver?: () => void
   }) {
-    this.solution = options?.solution
+    this.solution = options.solution
     this.timeToGuess = options.timeToGuess ?? 30
+
     this.onGameOver = options.onGameOver
     this.players = {}
     this.timers = {}
 
     console.log(this)
   }
+
+  set timeToGuess(timeToGuess: TimeToGuess) {
+    if (timeToGuess === 8) this._timeToGuess = null
+    else this._timeToGuess = timeToGuess
+  }
+
+  get timeToGuess() {
+    return this._timeToGuess!
+  }
+
+  hasTimeToGuess = () => typeof this.timeToGuess === 'number'
 
   isFull = () => Object.keys(this.players).length >= this.maxPlayers
 
@@ -80,7 +89,7 @@ export class Game {
       guesses: [],
     }
 
-    if (this.isFull() && this.timeToGuess) {
+    if (this.isFull() && this.hasTimeToGuess()) {
       const guessBy = Date.now() + this.timeToGuess * 1000
 
       Object.keys(this.players).forEach(player => {
@@ -99,7 +108,7 @@ export class Game {
           } else {
             this.setGameOver({ type: 'noGuesses', solution: this.solution })
           }
-        }, this.timeToGuess! * 1000)
+        }, this.timeToGuess * 1000)
       })
     }
   }
@@ -141,6 +150,7 @@ export class Game {
 
     const guess = this.players[id].currentGuess
     if (guess.length !== SOLUTION_SIZE) return
+
     const letterStatuses = compare(guess, this.solution)
     this.players[id].guesses.push({ raw: guess, computed: letterStatuses })
     this.players[id].currentGuess = ''
@@ -148,7 +158,7 @@ export class Game {
     this.checkGameOver()
     if (this.isGameOver()) return
 
-    if (this.timeToGuess) {
+    if (this.hasTimeToGuess()) {
       clearTimeout(this.timers[id])
       this.players[id].guessBy = Date.now() + this.timeToGuess * 1000
       this.timers[id] = setTimeout(() => {
@@ -168,6 +178,9 @@ export class Game {
 
   setGameOver(gameOver: GameOverState) {
     this.gameOver = gameOver
+    Object.keys(this.timers).forEach(player =>
+      clearTimeout(this.timers[player])
+    )
     if (this.onGameOver) this.onGameOver()
   }
 
