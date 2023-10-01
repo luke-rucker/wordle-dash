@@ -23,6 +23,7 @@ import type { LetterStatus } from '@party/lib/words/compare'
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
 import { useSession } from '@supabase/auth-helpers-react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
+import ReactGA from 'react-ga4'
 import { supabase } from '@/lib/supabase'
 import { DashGameContext } from '@/contexts/dash-game-context'
 import {
@@ -118,9 +119,14 @@ function Game({
   const [userId, setUserId] = React.useState<string | null>(
     session?.user.id ?? null
   )
+  const trackedStart = React.useRef(false)
   usePartyMessage('welcome', ({ token, userId }) => {
     setUserId(userId)
     if (token) sessionStorage.setItem('token', token)
+    if (!trackedStart.current) {
+      ReactGA.event('started_game', { game_type: 'dash' })
+      trackedStart.current = true
+    }
   })
 
   usePartyMessage('fullGame', () => {
@@ -144,7 +150,14 @@ function Game({
     state: GameOverState
     game: Record<string, PlayerState>
   }>()
-  usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
+  const trackedFinish = React.useRef(false)
+  usePartyMessage('gameOver', ({ state, game }) => {
+    setGameOver({ state, game })
+    if (!trackedFinish.current) {
+      ReactGA.event('played_game', { game_type: 'dash' })
+      trackedFinish.current = true
+    }
+  })
 
   const [playAgain, setPlayAgain] = React.useState<PlayAgainState>()
   usePartyMessage('playAgain', ({ playAgain }) => setPlayAgain(playAgain))

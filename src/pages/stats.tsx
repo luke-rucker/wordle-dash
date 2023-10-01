@@ -17,6 +17,7 @@ import { getFlag, useCurrentLocale } from '@/lib/utils'
 import * as React from 'react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
+import ReactGA from 'react-ga4'
 
 export function Stats() {
   const session = useSession()
@@ -98,6 +99,7 @@ export function Stats() {
                 .then(() => {
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2500)
+                  ReactGA.event('copied_stats')
                 })
                 .catch(() => {})
             }}

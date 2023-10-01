@@ -15,6 +15,7 @@ import { createPartyClient } from 'partyrpc/client'
 import type { SafeCoopEvents, SafeCoopResponses } from '@party/coop-game'
 import { createPartyHooks } from 'partyrpc/react'
 import { useReadLocalStorage } from 'usehooks-ts'
+import ReactGA from 'react-ga4'
 import { GameOverState, GameState, PlayerState } from '@party/lib/coop-game'
 import { Splash } from '@/components/splash'
 import { Alert, AlertTitle } from '@/components/ui/alert'
@@ -112,10 +113,14 @@ function Game({
   const [userId, setUserId] = React.useState<string | null>(
     session?.user.id ?? null
   )
-
+  const trackedStart = React.useRef(false)
   usePartyMessage('welcome', ({ token, userId }) => {
     setUserId(userId)
     if (token) sessionStorage.setItem('token', token)
+    if (!trackedStart.current) {
+      ReactGA.event('started_game', { game_type: 'coop' })
+      trackedStart.current = true
+    }
   })
 
   usePartyMessage('fullGame', () => {
@@ -139,7 +144,14 @@ function Game({
     state: GameOverState
     game: Record<string, PlayerState>
   }>()
-  usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
+  const trackedFinish = React.useRef(false)
+  usePartyMessage('gameOver', ({ state, game }) => {
+    setGameOver({ state, game })
+    if (!trackedFinish.current) {
+      ReactGA.event('played_game', { game_type: 'coop' })
+      trackedFinish.current = true
+    }
+  })
 
   const [playAgain, setPlayAgain] = React.useState<PlayAgainState>()
   usePartyMessage('playAgain', ({ playAgain }) => setPlayAgain(playAgain))

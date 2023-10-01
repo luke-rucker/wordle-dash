@@ -48,6 +48,7 @@ import { useSession } from '@supabase/auth-helpers-react'
 import { Alpha2Code } from 'i18n-iso-countries'
 import { useForm } from 'react-hook-form'
 import { useLocalStorage } from 'usehooks-ts'
+import ReactGA from 'react-ga4'
 
 export function Settings() {
   const session = useSession()
@@ -107,6 +108,7 @@ function AnonProfileForm() {
           toaster.toast({
             title: 'Updated your profile successfully.',
           })
+          ReactGA.event('updated_profile', { user_type: 'anon' })
         })}
         className="space-y-8"
       >
@@ -182,6 +184,7 @@ function ProfileForm({ userId }: { userId: string }) {
         toaster.toast({
           title: 'Updated your profile successfully.',
         })
+        ReactGA.event('updated_profile', { user_type: 'verified' })
       },
       onError: err => {
         if (err.code === '23505') {

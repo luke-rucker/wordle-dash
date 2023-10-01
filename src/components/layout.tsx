@@ -1,8 +1,26 @@
 import { Icons } from '@/components/icons'
 import { Button } from '@/components/ui/button'
+import { usePageViewTracking } from '@/lib/utils'
 import { Link, Outlet } from 'react-router-dom'
+import * as React from 'react'
+import ReactGA from 'react-ga4'
+import { supabase } from '@/lib/supabase'
 
 export function Layout() {
+  usePageViewTracking()
+
+  React.useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(event => {
+      if (event === 'SIGNED_IN') ReactGA.event('signed_in')
+      if (event === 'SIGNED_OUT') ReactGA.event('signed_out')
+      if (event === 'INITIAL_SESSION') ReactGA.event('signed_up')
+    })
+
+    return () => subscription.unsubscribe()
+  })
+
   return (
     <div className="h-full flex flex-col">
       <header className="border-b h-16">

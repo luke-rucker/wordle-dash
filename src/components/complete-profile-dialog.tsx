@@ -26,6 +26,7 @@ import { valibotResolver } from '@hookform/resolvers/valibot'
 import { useUpsertMutation } from '@supabase-cache-helpers/postgrest-react-query'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
+import ReactGA from 'react-ga4'
 
 export function CompleteProfileModal({ userId }: { userId: string }) {
   const form = useForm<ProfileData>({
@@ -53,6 +54,7 @@ export function CompleteProfileModal({ userId }: { userId: string }) {
         toaster.toast({
           title: 'Updated your profile successfully.',
         })
+        ReactGA.event('onboarding_complete')
       },
       onError: err => {
         form.setError(
