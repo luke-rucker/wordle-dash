@@ -95,7 +95,11 @@ export function Landing() {
         </h2>
 
         <p className="text-base md:text-xl text-muted-foreground mb-7">
-          Pick a game mode
+          Pick a game mode or{' '}
+          <Link to="/stats" className="underline">
+            view leaderboard
+          </Link>
+          📊
         </p>
 
         <Tabs
@@ -451,7 +455,7 @@ function CreateAGame({
   const navigate = useNavigate()
   usePartyMessage('ready', message => {
     navigate(`/${message.gameType}/${message.gameId}`, {
-      state: { realGame: true },
+      state: { realGame: true, privateGame: true },
     })
   })
 
@@ -643,7 +647,9 @@ function JoinGame({ onCancel }: { onCancel: () => void }) {
       toast.toast({ title: err.message, variant: 'destructive' })
     },
     onSuccess: game => {
-      navigate(`/${game.type}/${game.id}`, { state: { realGame: true } })
+      navigate(`/${game.type}/${game.id}`, {
+        state: { realGame: true, privateGame: true },
+      })
     },
   })
 
@@ -876,7 +882,7 @@ function DashGameBoard({
             <Cell
               key={`${row}-${index}`}
               status={status}
-              className="h-4 md:h-6 w-4 md:w-6 border-2 rounded-none"
+              className="h-4 md:h-6 w-4 md:w-6 border-2"
             />
           ))
         )}
@@ -949,7 +955,7 @@ function CoopGame() {
             <Cell
               key={`${row}-${index}`}
               status={status}
-              className="h-6 w-6 border-2 rounded-none"
+              className="h-6 w-6 border-2"
             />
           ))
         )}

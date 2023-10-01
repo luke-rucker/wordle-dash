@@ -3,6 +3,7 @@ import type {
   GameState,
   PlayerState,
 } from '@party/lib/coop-game'
+import type { PlayAgainState } from '@party/lib/play-again'
 import * as React from 'react'
 
 export type GameValue = {
@@ -13,6 +14,7 @@ export type GameValue = {
     state: GameOverState
     game: Record<string, PlayerState>
   }
+  playAgain?: PlayAgainState
 }
 
 export const CoopGameContext = React.createContext<GameValue | null>(null)

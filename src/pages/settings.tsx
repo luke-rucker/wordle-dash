@@ -336,7 +336,7 @@ function ThemeSwitcher() {
           id="l"
           value="light"
           className={cn(
-            'grid grid-cols-5 gap-1 border-4 rounded p-3 bg-white border-white focus:outline-none',
+            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-white border-white focus:outline-none',
             theme.current === 'light' && 'border-primary'
           )}
         >
@@ -345,7 +345,7 @@ function ThemeSwitcher() {
               <Cell
                 key={`${row}-${index}`}
                 status={status}
-                className="h-5 w-5 rounded-none"
+                className="h-5 w-5"
               />
             ))
           )}
@@ -362,7 +362,7 @@ function ThemeSwitcher() {
           id="d"
           value="dark"
           className={cn(
-            'grid grid-cols-5 gap-1 border-4 rounded p-3 bg-[#04080F] border-[#04080F] focus:outline-none',
+            'grid grid-cols-5 gap-1 border-2 rounded p-3 bg-[#04080F] border-[#04080F] focus:outline-none',
             theme.current === 'dark' && 'border-primary'
           )}
         >
@@ -371,7 +371,7 @@ function ThemeSwitcher() {
               <Cell
                 key={`${row}-${index}`}
                 status={status}
-                className="h-5 w-5 rounded-none"
+                className="h-5 w-5"
               />
             ))
           )}

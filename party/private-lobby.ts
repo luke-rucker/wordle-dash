@@ -1,9 +1,9 @@
 import type * as Party from 'partykit/server'
-import type { TimeToGuess } from '@party/lib/dash-game'
 import { createPartyRpc } from 'partyrpc/server'
 import { enumType, object } from 'valibot'
 import { uid } from 'uid/secure'
 import { GameType } from '@party/lobby'
+import type { TimeToGuess } from '@party/lib/shared'
 
 export type ReadyResponse = {
   type: 'ready'

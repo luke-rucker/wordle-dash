@@ -41,8 +41,11 @@ import { Waiting } from '@/components/waiting'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { useReadLocalStorage } from 'usehooks-ts'
 import { Splash } from '@/components/splash'
-import { Guess } from '@party/lib/shared'
+import type { Guess } from '@party/lib/shared'
 import { Countdown } from '@/components/countdown'
+import type { PlayAgainState } from '@party/lib/play-again'
+import { LoadingDots } from '@/components/loading-dots'
+import { useToast } from '@/components/ui/use-toast'
 
 export function DashGame() {
   const { gameId } = useParams()
@@ -52,10 +55,25 @@ export function DashGame() {
     return <Navigate to="/" replace />
   }
 
-  return <Game gameId={gameId!.toLowerCase()} key={gameId} />
+  return (
+    <Game
+      key={gameId}
+      gameId={gameId!.toLowerCase()}
+      privateGame={location.state?.privateGame}
+    />
+  )
 }
 
-function Game({ gameId }: { gameId: string }) {
+function Game({
+  gameId,
+  privateGame,
+}: {
+  gameId: string
+  privateGame?: boolean
+}) {
+  const navigate = useNavigate()
+  const toaster = useToast()
+
   const session = useSession()
   const profile = useQuery(
     supabase
@@ -86,7 +104,6 @@ function Game({ gameId }: { gameId: string }) {
 
   const { usePartyMessage } = createPartyHooks(client)
 
-  const navigate = useNavigate()
   const anonUsername = useReadLocalStorage<string>('username')
 
   usePartyMessage('ready', () => {
@@ -107,18 +124,12 @@ function Game({ gameId }: { gameId: string }) {
   })
 
   usePartyMessage('fullGame', () => {
-    // TODO: error
-    navigate('/', { state: { fullGame: true } })
+    toaster.toast({ title: 'Game is full.', variant: 'destructive' })
+    navigate('/')
   })
 
   const [game, setGame] = React.useState<GameState>()
   usePartyMessage('tick', ({ game }) => setGame(game))
-
-  const [gameOver, setGameOver] = React.useState<{
-    state: GameOverState
-    game: Record<string, PlayerState>
-  }>()
-  usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
 
   const [badGuess, setBadGuess] = React.useState(false)
   usePartyMessage('badGuess', () => setBadGuess(true))
@@ -129,11 +140,34 @@ function Game({ gameId }: { gameId: string }) {
     return () => clearTimeout(clear)
   }, [badGuess])
 
+  const [gameOver, setGameOver] = React.useState<{
+    state: GameOverState
+    game: Record<string, PlayerState>
+  }>()
+  usePartyMessage('gameOver', ({ state, game }) => setGameOver({ state, game }))
+
+  const [playAgain, setPlayAgain] = React.useState<PlayAgainState>()
+  usePartyMessage('playAgain', ({ playAgain }) => setPlayAgain(playAgain))
+
+  usePartyMessage('newGame', ({ gameId }) =>
+    navigate(`/dash/${gameId}`, {
+      state: { realGame: true, privateGame: true },
+    })
+  )
+
+  usePartyMessage('goHome', () => {
+    toaster.toast({
+      title: 'Your opponent disconnected.',
+      variant: 'destructive',
+    })
+    navigate('/')
+  })
+
   React.useEffect(() => {
-    if (gameOver) {
+    if (gameOver && !privateGame) {
       socket.close()
     }
-  }, [gameOver, socket])
+  }, [gameOver, socket, privateGame])
 
   if (!game || !game.you || !userId) {
     return <Splash type="loading" />
@@ -152,8 +186,15 @@ function Game({ gameId }: { gameId: string }) {
   }
 
   return (
-    <DashGameContext.Provider value={{ userId, badGuess, game, gameOver }}>
-      {gameOver ? <GameOverDialog /> : null}
+    <DashGameContext.Provider
+      value={{ userId, badGuess, game, gameOver, playAgain }}
+    >
+      {gameOver ? (
+        <GameOverDialog
+          privateGame={privateGame}
+          onPlayAgain={() => client.send({ type: 'playAgain' })}
+        />
+      ) : null}
 
       <div className="h-full py-6 md:pt-20 flex flex-col items-center justify-between relative">
         {badGuess ? (
@@ -375,11 +416,14 @@ function EmptyRow() {
   )
 }
 
-function GameOverDialog() {
+function GameOverDialog({
+  onPlayAgain,
+  privateGame,
+}: {
+  onPlayAgain: () => void
+  privateGame?: boolean
+}) {
   const [open, setOpen] = React.useState(true)
-  const [waiting, setWaiting] = React.useState(false)
-
-  const navigate = useNavigate()
 
   const { gameOver, userId } = useDashGame()
 
@@ -457,26 +501,93 @@ function GameOverDialog() {
         </div>
 
         <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
-          {waiting ? (
-            <Waiting
-              lobby="dash"
-              onJoin={gameUrl => {
-                navigate(gameUrl, { state: { realGame: true } })
-                setOpen(false)
-              }}
-              onCancel={() => setWaiting(false)}
-            />
+          {privateGame ? (
+            <PrivateGameOverOptions onPlayAgain={onPlayAgain} />
           ) : (
-            <>
-              <Button onClick={() => setWaiting(true)}>Play another</Button>
-
-              <Button asChild variant="link">
-                <Link to="/">Go home</Link>
-              </Button>
-            </>
+            <GameOverOptions />
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function GameOverOptions() {
+  const navigate = useNavigate()
+
+  const [waiting, setWaiting] = React.useState(false)
+
+  if (waiting) {
+    return (
+      <Waiting
+        lobby="dash"
+        onJoin={gameUrl => {
+          navigate(gameUrl, { state: { realGame: true } })
+        }}
+        onCancel={() => setWaiting(false)}
+      />
+    )
+  }
+
+  return (
+    <>
+      <Button onClick={() => setWaiting(true)}>Play another</Button>
+
+      <Button asChild variant="outline">
+        <Link to="/">Go home</Link>
+      </Button>
+    </>
+  )
+}
+
+function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
+  const { userId, playAgain } = useDashGame()
+
+  if (!playAgain) {
+    return (
+      <>
+        <Button onClick={onPlayAgain}>Ask for a rematch</Button>
+
+        <Button asChild variant="outline">
+          <Link to="/">Go home</Link>
+        </Button>
+      </>
+    )
+  }
+
+  if (Object.keys(playAgain).length === 2) {
+    return (
+      <p>
+        Starting new game
+        <LoadingDots />
+      </p>
+    )
+  }
+
+  if (playAgain[userId]) {
+    return (
+      <>
+        <p>
+          Waiting for a response
+          <LoadingDots />
+        </p>
+
+        <Button asChild variant="outline">
+          <Link to="/">Go home</Link>
+        </Button>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <p>Your opponent wants a rematch</p>
+
+      <Button onClick={onPlayAgain}>Accept</Button>
+
+      <Button asChild variant="outline">
+        <Link to="/">Go home</Link>
+      </Button>
+    </>
   )
 }

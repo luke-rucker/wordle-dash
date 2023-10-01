@@ -1,6 +1,6 @@
 import { Icons } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import type { Guess } from '@party/lib/dash-game'
+import type { Guess } from '@party/lib/shared'
 import type { LetterStatus } from '@party/lib/words/compare'
 import * as React from 'react'
 
@@ -142,8 +142,10 @@ function Key({ children, value, onClick, status, className }: KeyProps) {
       className={cn(
         'h-14 w-10 md:h-16 md:w-12 flex items-center justify-center uppercase text-sm md:text-xl rounded font-bold focus:outline-none select-none',
         {
-          'bg-secondary text-secondary-foreground': !status,
-          'bg-gray-600 text-white': status === 'a',
+          'bg-secondary text-secondary-foreground dark:bg-gray-600 dark:text-white':
+            !status,
+          'bg-gray-600 text-white dark:bg-secondary dark:text-secondary-foreground':
+            status === 'a',
           'bg-yellow-400 text-white': status === 'p',
           'bg-green-700 text-white': status === 'c',
         },

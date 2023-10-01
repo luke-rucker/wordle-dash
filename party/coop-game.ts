@@ -9,6 +9,8 @@ import { MAIN_ROOM } from '@party/main'
 import { type Supabase, createSupabaseClient } from '@party/lib/supabase'
 import { isValidGuess } from '@party/lib/words/valid-guesses'
 import { TimeToGuess } from '@party/lib/shared'
+import { PlayAgain, PlayAgainState } from '@party/lib/play-again'
+import { uid } from 'uid/secure'
 
 type ReadyResponse = { type: 'ready' }
 
@@ -35,6 +37,18 @@ type BadGuessResponse = {
   type: 'badGuess'
 }
 
+type PlayAgainResponse = {
+  type: 'playAgain'
+  playAgain: PlayAgainState
+}
+
+type NewGameResponse = {
+  type: 'newGame'
+  gameId: string
+}
+
+type GoHomeResponse = { type: 'goHome' }
+
 type PartyResponses =
   | ReadyResponse
   | WelcomeResponse
@@ -42,8 +56,13 @@ type PartyResponses =
   | TickResponse
   | GameOverResponse
   | BadGuessResponse
+  | PlayAgainResponse
+  | NewGameResponse
+  | GoHomeResponse
 
-const rpc = createPartyRpc<PartyResponses, Coop.Game>()
+type Context = { game: Coop.Game; playAgain: PlayAgain }
+
+const rpc = createPartyRpc<PartyResponses, Context>()
 
 export const safeGame = rpc.events({
   knockKnock: {
@@ -51,7 +70,7 @@ export const safeGame = rpc.events({
       token: nullable(string()),
       username: string(),
     }),
-    async onMessage(message, ws, party, game) {
+    async onMessage(message, ws, party, { game, playAgain }) {
       let user: User | null = null
       let token: string | undefined
 
@@ -94,13 +113,20 @@ export const safeGame = rpc.events({
           game: game.players,
         })
       }
+
+      if (playAgain.someoneWantsTo()) {
+        rpc.broadcast(party, {
+          type: 'playAgain',
+          playAgain: playAgain.players,
+        })
+      }
     },
   },
   typeGuess: {
     schema: object({
       guess: nullable(string([length(1)])),
     }),
-    onMessage(message, ws, party, game) {
+    onMessage(message, ws, party, { game }) {
       const { user } = attachments.get(ws)
       if (!user) return
       if (game.currentTurn !== user.id) return
@@ -116,7 +142,7 @@ export const safeGame = rpc.events({
   },
   submitGuess: {
     schema: object({}),
-    onMessage(message, ws, party, game) {
+    onMessage(message, ws, party, { game }) {
       const { user } = attachments.get(ws)
       if (!user) return
 
@@ -128,18 +154,41 @@ export const safeGame = rpc.events({
       }
 
       game.submitGuess(user.id)
+      broadcastGame(game, party)
+    },
+  },
+  playAgain: {
+    schema: object({}),
+    async onMessage(message, ws, party, { game, playAgain }) {
+      const { user } = attachments.get(ws)
+      if (!user) return
+      if (!game.isGameOver() || !game.isFull()) return
 
-      if (!game.isGameOver()) {
-        broadcastGame(game, party)
+      if ([...party.getConnections()].length < 2) {
+        return rpc.broadcast(party, { type: 'goHome' })
+      }
+
+      playAgain.agree(user.id)
+
+      if (playAgain.everyoneWantsTo()) {
+        rpc.broadcast(party, {
+          type: 'newGame',
+          gameId: uid(6),
+        })
+      } else {
+        rpc.broadcast(party, {
+          type: 'playAgain',
+          playAgain: playAgain.players,
+        })
       }
     },
   },
 })
 
-function broadcastGame(game: Coop.Game, party: Party.Party, skip?: string) {
+function broadcastGame(game: Coop.Game, party: Party.Party) {
   for (const ws of party.getConnections()) {
     const { user } = attachments.get(ws)
-    if (!user || user.id === skip) return
+    if (!user) return
     rpc.send(ws, {
       type: 'tick',
       game: game.stateForPlayer(user.id),
@@ -153,6 +202,8 @@ export type SafeCoopResponses = typeof safeGame.responses
 export default class Server implements Party.Server {
   private game?: Coop.Game
 
+  private playAgain?: PlayAgain
+
   private supabase: Supabase
 
   constructor(readonly party: Party.Party) {
@@ -161,23 +212,7 @@ export default class Server implements Party.Server {
   }
 
   async onStart() {
-    const { data } = await this.supabase.rpc('random_solution').throwOnError()
-
-    this.game = new Coop.Game({
-      solution: data!,
-      onGameOver: () => {
-        if (!this.game || !this.game.gameOver) return
-
-        this.updateStats().catch(err => console.log(err))
-
-        rpc.broadcast(this.party, {
-          type: 'gameOver',
-          state: this.game.gameOver,
-          game: this.game.players,
-        })
-      },
-    })
-
+    await this.setupGame()
     rpc.broadcast(this.party, { type: 'ready' })
   }
 
@@ -209,8 +244,11 @@ export default class Server implements Party.Server {
   }
 
   onMessage(message: string | ArrayBuffer, ws: Party.Connection) {
-    if (!this.game) return
-    safeGame.onMessage(message, ws, this.party, this.game)
+    if (!this.game || !this.playAgain) return
+    safeGame.onMessage(message, ws, this.party, {
+      game: this.game,
+      playAgain: this.playAgain,
+    })
   }
 
   async onClose() {
@@ -227,6 +265,28 @@ export default class Server implements Party.Server {
         type,
         gameType: 'coop',
       }),
+    })
+  }
+
+  private async setupGame() {
+    const { data } = await this.supabase.rpc('random_solution').throwOnError()
+
+    this.game = new Coop.Game({
+      solution: data!,
+      onGameOver: () => this.handleGameOver(),
+    })
+    this.playAgain = new PlayAgain({ expectedPlayers: 2 })
+  }
+
+  private handleGameOver() {
+    if (!this.game || !this.game.gameOver) return
+
+    this.updateStats().catch(err => console.log(err))
+
+    rpc.broadcast(this.party, {
+      type: 'gameOver',
+      state: this.game.gameOver,
+      game: this.game.players,
     })
   }
 
