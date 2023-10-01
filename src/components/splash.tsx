@@ -1,6 +1,6 @@
 import { LoadingDots } from '@/components/loading-dots'
 
-export function Splash({ type }: { type: 'loading' | '404' }) {
+export function Splash({ type }: { type: 'loading' | '404' | '500' }) {
   return (
     <main className="h-full flex flex-col items-center justify-center">
       <h2 className="mb-0.5 md:mb-5 text-2xl font-semibold tracking-tight">
@@ -22,6 +22,7 @@ export function Splash({ type }: { type: 'loading' | '404' }) {
           </>
         ) : null}
         {type === '404' ? '404 | Not Found' : null}
+        {type === '500' ? '500 | Server Error' : null}
       </p>
     </main>
   )

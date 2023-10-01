@@ -234,6 +234,7 @@ function GameHeader() {
         username={game.you.username}
         country={game.you.country}
         isCurrentTurn={game.you.isCurrentTurn}
+        type={game.you.type}
         isYou
       />
 
@@ -241,6 +242,7 @@ function GameHeader() {
         username={game.others[0]?.username ?? 'Player 2'}
         country={game.others[0]?.country}
         isCurrentTurn={game.others[0]?.isCurrentTurn}
+        type={game.others[0]?.type}
       />
     </div>
   )
@@ -250,8 +252,9 @@ function Player({
   username,
   country,
   isCurrentTurn,
+  type,
   isYou,
-}: Pick<PlayerState, 'username' | 'country'> & {
+}: Pick<PlayerState, 'username' | 'country' | 'type'> & {
   isCurrentTurn: boolean
   isYou?: boolean
 }) {
@@ -266,7 +269,9 @@ function Player({
     >
       {isYou
         ? `${username}${country ? ` ${getFlag(country)} ` : ''}(You)`
-        : `${username}${country ? ` ${getFlag(country)}` : ''}`}
+        : `${username}${country ? ` ${getFlag(country)}` : ''}${
+            type === 'anon' ? ' (Guest)' : ''
+          }`}
     </p>
   )
 }
@@ -346,7 +351,7 @@ function CurrentRow() {
             'typed',
             yourGuess
               ? 'border-blue-500 dark:border-blue-400'
-              : 'border-red-500 dark:border-red-400 ring-1 ring-offset-1 ring-offset-transparent ring-red-500 dark:ring-red-400'
+              : 'border-red-500 dark:border-red-400 ring-1 ring-red-500 dark:ring-red-400'
           )}
         />
       ))}
@@ -399,7 +404,7 @@ function GameOverDialog({
       if (gameOver?.state.playerId === userId) {
         return {
           winnerIsMe: true,
-          description: 'Looking speedy over there...',
+          description: 'Looking speedy over there :)',
         }
       } else {
         return {
@@ -433,9 +438,9 @@ function GameOverDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <p className="">The solution was</p>
+        <p className="text-center sm:text-left">The solution was</p>
 
-        <div className=" pb-4 flex items-center space-x-1">
+        <div className="pb-4 flex items-center justify-center sm:justify-start space-x-1">
           {gameOver.state.solution.split('').map((letter, index) => (
             <Cell letter={letter} status="c" key={index} />
           ))}
@@ -498,7 +503,7 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
 
   if (Object.keys(playAgain).length === 2) {
     return (
-      <p>
+      <p className="text-center sm:text-left">
         Starting new game
         <LoadingDots />
       </p>
@@ -508,7 +513,7 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
   if (playAgain[userId]) {
     return (
       <>
-        <p>
+        <p className="text-center sm:text-left">
           Waiting for a response
           <LoadingDots />
         </p>
@@ -522,7 +527,7 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
 
   return (
     <>
-      <p>Your opponent wants a rematch</p>
+      <p className="text-center sm:text-left">Your opponent wants a rematch</p>
 
       <Button onClick={onPlayAgain}>Accept</Button>
 

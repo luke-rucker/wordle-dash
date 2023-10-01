@@ -42,7 +42,7 @@ export function Layout() {
 
             <li>
               <Button asChild size="icon" variant="ghost">
-                <Link to="help">
+                <Link to="help" title="Help">
                   <Icons.Help className="h-6 w-6" />
                   <span className="sr-only">Help</span>
                 </Link>

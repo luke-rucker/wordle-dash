@@ -34,7 +34,9 @@ export function Waiting({
 
   return (
     <div className="w-full">
-      <p> Waiting for a game - {waiting ? <Timer /> : 'Connecting...'}</p>
+      <p className="text-center sm:text-left">
+        Waiting for a game - {waiting ? <Timer /> : 'Connecting...'}
+      </p>
 
       <Button className="mt-3 w-full" variant="outline" onClick={onCancel}>
         Cancel

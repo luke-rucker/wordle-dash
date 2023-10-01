@@ -275,18 +275,18 @@ function GamePreview(player: OtherPlayerState) {
         <span className="text-red-500 dark:text-red-400">
           {player.username}
           {player.country ? ` ${getFlag(player.country)}` : null}
+          {player.type === 'anon' ? ' (Guest)' : ''}
         </span>
-        {' - Attempt '}
-        {player.guesses.length}/{MAX_GUESSES}
-        {player.guessBy ? (
-          <Countdown to={player.guessBy} stopped={!!game.gameOver} />
-        ) : null}
-        {player.guessBy && game.gameOver?.state.type !== 'timeLimit' ? (
-          <Countdown to={player.guessBy} stopped={!!game.gameOver} />
-        ) : null}
-        {game.gameOver?.state.type === 'timeLimit' ? (
-          <span className="ml-2">00:00</span>
-        ) : null}
+        <br />
+        <span className="text-sm">
+          Attempt {player.guesses.length}/{MAX_GUESSES}
+          {player.guessBy && game.gameOver?.state.type !== 'timeLimit' ? (
+            <Countdown to={player.guessBy} stopped={!!game.gameOver} />
+          ) : null}
+          {game.gameOver?.state.type === 'timeLimit' ? (
+            <span className="ml-2">00:00</span>
+          ) : null}
+        </span>
       </p>
 
       {typeof guess === 'string' || typeof guess === 'number' ? (
@@ -328,6 +328,7 @@ function GameGrid(player: GameGridProps) {
         >
           {isYou ? 'You' : player.username}
           {player.country ? ` ${getFlag(player.country)}` : null}
+          {player.type === 'anon' ? ' (Guest)' : ''}
         </span>
 
         {player.guessBy && game.gameOver?.state.type !== 'timeLimit' ? (
@@ -446,7 +447,7 @@ function GameOverDialog({
       if (gameOver?.state.playerId === userId) {
         return {
           winnerIsMe: true,
-          description: 'Looking speedy over there...',
+          description: 'Looking speedy over there :)',
         }
       } else {
         return {
@@ -492,9 +493,9 @@ function GameOverDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <p className="">The solution was</p>
+        <p className="text-center sm:text-left">The solution was</p>
 
-        <div className=" pb-4 flex items-center space-x-1">
+        <div className="pb-4 flex items-center justify-center sm:justify-start space-x-1">
           {gameOver.state.solution.split('').map((letter, index) => (
             <Cell letter={letter} status="c" key={index} />
           ))}
@@ -557,7 +558,7 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
 
   if (Object.keys(playAgain).length === 2) {
     return (
-      <p>
+      <p className="text-center sm:text-left">
         Starting new game
         <LoadingDots />
       </p>
@@ -567,7 +568,7 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
   if (playAgain[userId]) {
     return (
       <>
-        <p>
+        <p className="text-center sm:text-left">
           Waiting for a response
           <LoadingDots />
         </p>
@@ -581,7 +582,7 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
 
   return (
     <>
-      <p>Your opponent wants a rematch</p>
+      <p className="text-center sm:text-left">Your opponent wants a rematch</p>
 
       <Button onClick={onPlayAgain}>Accept</Button>
 
