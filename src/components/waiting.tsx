@@ -4,6 +4,7 @@ import { useTimer } from '@/lib/utils'
 import * as React from 'react'
 import type { GameType, LobbyMessage } from '@party/lobby'
 import usePartySocket from 'partysocket/react'
+import { LoadingDots } from '@/components/loading-dots'
 
 export function Waiting({
   onCancel,
@@ -35,7 +36,15 @@ export function Waiting({
   return (
     <div className="w-full">
       <p className="text-center sm:text-left">
-        Waiting for a game - {waiting ? <Timer /> : 'Connecting...'}
+        Waiting for a game -{' '}
+        {waiting ? (
+          <Timer />
+        ) : (
+          <>
+            Connecting
+            <LoadingDots />
+          </>
+        )}
       </p>
 
       <Button className="mt-3 w-full" variant="outline" onClick={onCancel}>

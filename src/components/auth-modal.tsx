@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -34,11 +35,13 @@ export function AuthModal({
           <DialogDescription>
             {variant === 'signIn'
               ? 'Welcome back :)'
-              : 'Users with an account can save their stats across devices.'}
+              : 'Users with an account can save their stats across devices and compete on the global leaderboard.'}
           </DialogDescription>
         </DialogHeader>
 
-        <GoogleButton redirectTo={redirectTo} />
+        <DialogFooter>
+          <GoogleButton redirectTo={redirectTo} className="w-full" />
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

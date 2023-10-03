@@ -1,13 +1,10 @@
 create
-or replace function public.random_solution () returns text language plpgsql as $$
-  declare
-    solution text;
-  begin
-    select word into solution
+or replace function public.random_solution () returns table (word text, wordle_solution date) as $$
+begin
+  return query
+    select solutions.word, solutions.wordle_solution
     from public.solutions
     order by random()
     limit 1;
-
-    return solution;
-  end;
-$$
+end;
+$$ language plpgsql security invoker;

@@ -171,9 +171,22 @@ export const safeGame = rpc.events({
       playAgain.agree(user.id)
 
       if (playAgain.everyoneWantsTo()) {
+        const gameId = uid(6)
+        const gameParty = party.context.parties.coopGame
+        const gameRoom = gameParty.get(gameId)
+
+        const timeToGuess = game.timeToGuess ? game.timeToGuess : 8
+
+        await gameRoom.fetch({
+          method: 'POST',
+          body: JSON.stringify({
+            timeToGuess,
+          }),
+        })
+
         rpc.broadcast(party, {
           type: 'newGame',
-          gameId: uid(6),
+          gameId,
         })
       } else {
         rpc.broadcast(party, {
@@ -252,7 +265,11 @@ export default class Server implements Party.Server {
   }
 
   async onClose() {
-    await this.updateConnections('disconnect')
+    if (this.playAgain && this.playAgain.someoneWantsTo()) {
+      rpc.broadcast(this.party, { type: 'goHome' })
+    }
+
+    await this.updateConnections('disconnect').catch(err => console.log(err))
   }
 
   private async updateConnections(type: 'connect' | 'disconnect') {
@@ -270,18 +287,19 @@ export default class Server implements Party.Server {
 
   private async setupGame() {
     const { data } = await this.supabase.rpc('random_solution').throwOnError()
+    if (!data) throw new Error('no solution returned')
 
     this.game = new Coop.Game({
-      solution: data!,
+      solution: data[0],
       onGameOver: () => this.handleGameOver(),
     })
     this.playAgain = new PlayAgain({ expectedPlayers: 2 })
   }
 
-  private handleGameOver() {
+  private async handleGameOver() {
     if (!this.game || !this.game.gameOver) return
 
-    this.updateStats().catch(err => console.log(err))
+    await this.updateStats().catch(err => console.log(err))
 
     rpc.broadcast(this.party, {
       type: 'gameOver',

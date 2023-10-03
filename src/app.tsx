@@ -13,6 +13,7 @@ import { CoopGame } from '@/pages/coop-game'
 import { Splash } from '@/components/splash'
 import { Stats } from '@/pages/stats'
 import { Help } from '@/pages/help'
+import { Privacy } from '@/pages/privacy'
 
 const queryClient = new QueryClient()
 
@@ -29,6 +30,7 @@ export function App() {
                   <Route path="stats" element={<Stats />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="help" element={<Help />} />
+                  <Route path="privacy" element={<Privacy />} />
                   <Route path="coop/:gameId" element={<CoopGame />} />
                   <Route path="dash/:gameId" element={<DashGame />} />
                   <Route path="*" element={<Splash type="404" />} />

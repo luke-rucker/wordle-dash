@@ -1,5 +1,5 @@
 import { MAX_GUESSES, SOLUTION_SIZE } from '@party/lib/constants'
-import type { Guess, TimeToGuess } from '@party/lib/shared'
+import type { Guess, Solution, TimeToGuess } from '@party/lib/shared'
 import type { User } from '@party/lib/tokens'
 import { compare } from '@party/lib/words/compare'
 
@@ -18,27 +18,27 @@ export type OtherPlayerState = User & {
 export type GameState = {
   you: PlayerState & { isCurrentTurn: boolean }
   others: Array<OtherPlayerState & { isCurrentTurn: boolean }>
-  guesses: Array<Guess & { playerId: string }>
+  guesses: Array<Guess>
   maxGuesses: number
   guessBy?: number
 }
 
 export type GameOverState = {
   type: 'win' | 'timeLimit'
-  solution: string
+  solution: Solution
   playerId: string
 }
 
 export class Game {
   private _timeToGuess?: TimeToGuess | null
 
-  solution: string
+  solution: Solution
 
   maxPlayers = 2
 
   maxGuesses = MAX_GUESSES
 
-  guesses: Array<Guess & { playerId: string }>
+  guesses: Array<Guess>
 
   players: Record<string, PlayerState>
 
@@ -50,12 +50,12 @@ export class Game {
 
   gameOver?: GameOverState
 
-  onGameOver?: () => void
+  onGameOver?: () => Promise<void>
 
   constructor(options: {
-    solution: string
+    solution: Solution
     timeToGuess?: TimeToGuess
-    onGameOver?: () => void
+    onGameOver?: () => Promise<void>
   }) {
     this.solution = options.solution
     this.timeToGuess = options.timeToGuess ?? 30
@@ -129,8 +129,8 @@ export class Game {
     const guess = this.players[id].currentGuess
     if (guess.length !== SOLUTION_SIZE) return
 
-    const letterStatuses = compare(guess, this.solution)
-    this.guesses.push({ raw: guess, computed: letterStatuses, playerId: id })
+    const letterStatuses = compare(guess, this.solution.word)
+    this.guesses.push({ raw: guess, computed: letterStatuses })
     this.players[id].currentGuess = ''
 
     if (letterStatuses.every(status => status === 'c')) {

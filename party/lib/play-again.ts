@@ -24,4 +24,8 @@ export class PlayAgain {
   someoneWantsTo() {
     return Object.keys(this.players).length > 0
   }
+
+  iWantTo(id: string) {
+    return this.players[id] ?? false
+  }
 }

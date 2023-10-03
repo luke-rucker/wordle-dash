@@ -151,3 +151,6 @@ export function usePageViewTracking() {
     })
   }, [location.pathname, landing, stats, settings, help, privacy, coop, dash])
 }
+
+export const capitalize = ([first, ...rest]: string) =>
+  first === undefined ? '' : first.toUpperCase() + rest.join('')

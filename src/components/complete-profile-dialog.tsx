@@ -23,7 +23,7 @@ import { ProfileData, profileSchema } from '@/lib/profiles'
 import { supabase } from '@/lib/supabase'
 import { useDetectCountry } from '@/lib/utils'
 import { valibotResolver } from '@hookform/resolvers/valibot'
-import { useUpsertMutation } from '@supabase-cache-helpers/postgrest-react-query'
+import { useUpdateMutation } from '@supabase-cache-helpers/postgrest-react-query'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import ReactGA from 'react-ga4'
@@ -45,7 +45,7 @@ export function CompleteProfileModal({ userId }: { userId: string }) {
 
   const toaster = useToast()
 
-  const updateProfile = useUpsertMutation(
+  const updateProfile = useUpdateMutation(
     supabase.from('profiles'),
     ['id'],
     null,
@@ -86,7 +86,7 @@ export function CompleteProfileModal({ userId }: { userId: string }) {
           <form
             id="completeProfile"
             onSubmit={form.handleSubmit(data =>
-              updateProfile.mutate([{ ...data, id: userId }])
+              updateProfile.mutate({ ...data, id: userId })
             )}
             className="space-y-8"
           >

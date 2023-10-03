@@ -42,7 +42,7 @@ import { LetterStatus } from '@party/lib/words/compare'
 import * as RadioGroup from '@radix-ui/react-radio-group'
 import {
   useQuery,
-  useUpsertMutation,
+  useUpdateMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
 import { Alpha2Code } from 'i18n-iso-countries'
@@ -175,7 +175,7 @@ function ProfileForm({ userId }: { userId: string }) {
 
   const toaster = useToast()
 
-  const updateProfile = useUpsertMutation(
+  const updateProfile = useUpdateMutation(
     supabase.from('profiles'),
     ['id'],
     null,
@@ -209,7 +209,7 @@ function ProfileForm({ userId }: { userId: string }) {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(data =>
-          updateProfile.mutate([{ ...data, id: userId }])
+          updateProfile.mutate({ ...data, id: userId })
         )}
         className="space-y-8"
       >

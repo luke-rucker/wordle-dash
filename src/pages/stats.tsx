@@ -43,9 +43,9 @@ export function Stats() {
   const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
 
   const formatWinsLosses = (wins: number | null, losses: number | null) => {
-    if (!wins || !losses) return 0
-    if (losses === 0) return wins
-    return wins / losses
+    if (!wins && !losses) return 0
+    if (losses === 0 || losses === null) return wins ?? 0
+    return (wins ?? 0) / losses
   }
 
   const [copied, setCopied] = React.useState(false)
@@ -92,7 +92,7 @@ export function Stats() {
 
               const stats = `My Wordle Dash Stats\n\n🏅 #${rank} Player in the world\n🏆 ${wins} Wins\n😔 ${losses} Losses\n🔥 ${
                 streak ?? 0
-              } Win Streak\n\nPlay at wordledash.com :)`
+              } Win Streak\n\nPlay at wordledash.io :)`
 
               await navigator.clipboard
                 .writeText(stats)
@@ -154,7 +154,8 @@ export function Stats() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">#{user.rank}</TableCell>
                   <TableCell>
-                    {user.country ? getFlag(user.country) : ' '} {user.username}{' '}
+                    {user.country ? getFlag(user.country) : ' '}{' '}
+                    {user.username ?? '(Guest)'}{' '}
                     {user.id === session?.user.id ? ' (You)' : null}
                   </TableCell>
                   <TableCell>{formatter.format(user.wins ?? 0)}</TableCell>
@@ -190,7 +191,7 @@ function StatSection({
         title="Rank"
         icon="🏅"
         description="Your global rank"
-        value={rank ? `#${rank}` : '-'}
+        value={rank ? `#${formatter.format(rank)}` : '-'}
       />
 
       <Stat

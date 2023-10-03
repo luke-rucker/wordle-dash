@@ -45,21 +45,7 @@ create policy "Profiles are viewable by everyone." on profiles for
 select
   using (true);
 
-create policy "Users can insert their own profile." on profiles for insert
-with
-  check (
-    auth.uid () = id
-    and is_not_updating_stats (
-      id,
-      dash_wins,
-      dash_losses,
-      coop_wins,
-      coop_losses,
-      streak
-    )
-  );
-
-create policy "Users can update own profile." on profiles for
+create policy "Users can update their own profile." on profiles for
 update using (
   auth.uid () = id
   and is_not_updating_stats (
@@ -71,6 +57,10 @@ update using (
     streak
   )
 );
+
+create policy "Users can create their own profile." on profiles for insert
+with
+  check (auth.uid () = id);
 
 -- inserts a row into public.profiles
 create function public.handle_new_user () returns trigger language plpgsql security definer

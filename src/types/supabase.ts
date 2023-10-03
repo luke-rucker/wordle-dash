@@ -109,7 +109,10 @@ export interface Database {
       }
       random_solution: {
         Args: Record<PropertyKey, never>
-        Returns: string
+        Returns: {
+          word: string
+          wordle_solution: string
+        }[]
       }
       set_loss: {
         Args: {

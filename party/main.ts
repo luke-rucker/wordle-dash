@@ -22,7 +22,7 @@ export default class Server implements Party.PartyKitServer {
 
   coop?: number
 
-  options: Party.PartyServerOptions = {
+  options: Party.ServerOptions = {
     hibernate: true,
   }
 
@@ -30,7 +30,7 @@ export default class Server implements Party.PartyKitServer {
     this.party = party
   }
 
-  async onConnect(ws: Party.PartyConnection) {
+  async onConnect(ws: Party.Connection) {
     this.dash = this.dash ?? (await this.party.storage.get('dash')) ?? 0
     this.coop = this.coop ?? (await this.party.storage.get('coop')) ?? 0
 
@@ -43,7 +43,7 @@ export default class Server implements Party.PartyKitServer {
     )
   }
 
-  async onRequest(request: Party.PartyRequest) {
+  async onRequest(request: Party.Request) {
     if (request.method === 'POST') {
       const update = (await request.json()) as {
         type: 'connect' | 'disconnect'

@@ -37,7 +37,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useDashGame } from '@/lib/game'
 import { Cell } from '@/components/cell'
-import { cn, getFlag } from '@/lib/utils'
+import { capitalize, cn, getFlag } from '@/lib/utils'
 import { Waiting } from '@/components/waiting'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { useReadLocalStorage } from 'usehooks-ts'
@@ -439,7 +439,13 @@ function GameOverDialog({
 }) {
   const [open, setOpen] = React.useState(true)
 
-  const { gameOver, userId } = useDashGame()
+  const { gameOver, userId, playAgain } = useDashGame()
+
+  React.useEffect(() => {
+    if (playAgain) {
+      setOpen(true)
+    }
+  }, [playAgain])
 
   if (!gameOver) {
     return null
@@ -508,13 +514,28 @@ function GameOverDialog({
 
         <p className="text-center sm:text-left">The solution was</p>
 
-        <div className="pb-4 flex items-center justify-center sm:justify-start space-x-1">
-          {gameOver.state.solution.split('').map((letter, index) => (
+        <div
+          className={cn(
+            'flex items-center justify-center sm:justify-start space-x-1',
+            gameOver.state.solution.wordle_solution ? 'pb-0' : 'pb-4'
+          )}
+        >
+          {gameOver.state.solution.word.split('').map((letter, index) => (
             <Cell letter={letter} status="c" key={index} />
           ))}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
+        {gameOver.state.solution.wordle_solution ? (
+          <p className="text-center sm:text-left pb-4 text-sm">
+            {capitalize(gameOver.state.solution.word)} was the Wordle on{' '}
+            {new Date(
+              gameOver.state.solution.wordle_solution
+            ).toLocaleDateString()}
+            .
+          </p>
+        ) : null}
+
+        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-3">
           {privateGame ? (
             <PrivateGameOverOptions onPlayAgain={onPlayAgain} />
           ) : (

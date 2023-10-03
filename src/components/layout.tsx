@@ -15,7 +15,6 @@ export function Layout() {
     } = supabase.auth.onAuthStateChange(event => {
       if (event === 'SIGNED_IN') ReactGA.event('signed_in')
       if (event === 'SIGNED_OUT') ReactGA.event('signed_out')
-      if (event === 'INITIAL_SESSION') ReactGA.event('signed_up')
     })
 
     return () => subscription.unsubscribe()
@@ -23,8 +22,8 @@ export function Layout() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="border-b h-16">
-        <nav className="flex items-center justify-between h-16 container">
+      <header className="border-b h-12 sm:h-16">
+        <nav className="h-12 sm:h-16 flex items-center justify-between container">
           <Link to="/" className="flex items-center space-x-1 hover:opacity-80">
             <div
               role="img"
@@ -72,17 +71,17 @@ export function Layout() {
 
       <Outlet />
 
-      <footer className="py-4 mt-4 border-t">
+      <footer className="py-2 sm:py-4 mt-4 border-t">
         <div className="container flex items-center justify-between text-muted-foreground">
           © {new Date().getFullYear()} Wordle Dash
           <ul className="flex items-center space-x-3">
             <li>
-              <a href="mailto:hello@wordledash.com" className="hover:underline">
+              <a href="mailto:hello@wordledash.io" className="hover:underline">
                 Feedback
               </a>
             </li>
 
-            <li role="separator">|</li>
+            <li aria-hidden>|</li>
 
             <li>
               <Link to="/privacy" className="hover:underline">

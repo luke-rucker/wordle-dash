@@ -22,7 +22,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Keyboard } from '@/components/keyboard'
 import { CoopGameContext } from '@/contexts/coop-game-context'
 import { useCoopGame } from '@/lib/game'
-import { cn, getFlag } from '@/lib/utils'
+import { capitalize, cn, getFlag } from '@/lib/utils'
 import { SOLUTION_SIZE } from '@party/lib/constants'
 import { Cell } from '@/components/cell'
 import { Countdown } from '@/components/countdown'
@@ -227,7 +227,7 @@ function Game({
           onLetter={letter => client.send({ type: 'typeGuess', guess: letter })}
           onDelete={() => client.send({ type: 'typeGuess', guess: null })}
           onEnter={() => client.send({ type: 'submitGuess' })}
-          guesses={game.guesses.filter(guess => guess.playerId === userId)}
+          guesses={game.guesses}
           disabled={
             !game.you.isCurrentTurn || !!gameOver || game.others.length === 0
           }
@@ -403,7 +403,13 @@ function GameOverDialog({
 }) {
   const [open, setOpen] = React.useState(true)
 
-  const { gameOver, userId } = useCoopGame()
+  const { gameOver, userId, playAgain } = useCoopGame()
+
+  React.useEffect(() => {
+    if (playAgain) {
+      setOpen(true)
+    }
+  }, [playAgain])
 
   if (!gameOver) {
     return null
@@ -452,13 +458,28 @@ function GameOverDialog({
 
         <p className="text-center sm:text-left">The solution was</p>
 
-        <div className="pb-4 flex items-center justify-center sm:justify-start space-x-1">
-          {gameOver.state.solution.split('').map((letter, index) => (
+        <div
+          className={cn(
+            'flex items-center justify-center sm:justify-start space-x-1',
+            gameOver.state.solution.wordle_solution ? 'pb-0' : 'pb-4'
+          )}
+        >
+          {gameOver.state.solution.word.split('').map((letter, index) => (
             <Cell letter={letter} status="c" key={index} />
           ))}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
+        {gameOver.state.solution.wordle_solution ? (
+          <p className="text-center sm:text-left pb-4 text-sm">
+            {capitalize(gameOver.state.solution.word)} was the Wordle on{' '}
+            {new Date(
+              gameOver.state.solution.wordle_solution
+            ).toLocaleDateString()}
+            .
+          </p>
+        ) : null}
+
+        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-3">
           {privateGame ? (
             <PrivateGameOverOptions onPlayAgain={onPlayAgain} />
           ) : (
