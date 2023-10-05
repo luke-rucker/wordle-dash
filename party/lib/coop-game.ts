@@ -64,6 +64,8 @@ export class Game {
     this.guesses = []
     this.currentTurn = ''
     this.onGameOver = options.onGameOver
+
+    console.log(this.solution)
   }
 
   set timeToGuess(timeToGuess: TimeToGuess) {

@@ -1,4 +1,5 @@
 import { CoopGameAnimation, DashGameAnimation } from '@/components/animations'
+import { AppleButton } from '@/components/apple-button'
 import { AuthModal } from '@/components/auth-modal'
 import { GoogleButton } from '@/components/google-button'
 import { Icons } from '@/components/icons'
@@ -280,7 +281,7 @@ function CurrentUser() {
     return (
       <CardDescription>
         Playing as {username}
-        {'. '}
+        {' (Guest) '}
         <AuthModal
           variant="signUp"
           trigger={
@@ -363,7 +364,10 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
         .
       </p>
 
-      <GoogleButton />
+      <div className="flex flex-col md:flex-row gap-4 md:gap-2">
+        <GoogleButton />
+        <AppleButton />
+      </div>
 
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
@@ -371,7 +375,7 @@ function EnsureUsername({ children }: { children: React.ReactNode }) {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or play as
+            Or play as a guest
           </span>
         </div>
       </div>

@@ -41,6 +41,8 @@ import ConfettiExplosion from 'react-confetti-explosion'
 import { useToast } from '@/components/ui/use-toast'
 import type { PlayAgainState } from '@party/lib/play-again'
 import { LoadingDots } from '@/components/loading-dots'
+import { Streak } from '@/components/streak'
+import { Icons } from '@/components/icons'
 
 export function CoopGame() {
   const { gameId } = useParams()
@@ -191,7 +193,7 @@ function Game({
         />
       ) : null}
 
-      <div className="h-full py-6 md:pt-20 flex flex-col items-center justify-between relative">
+      <div className="flex-grow pt-2 md:pt-6 flex flex-col items-center justify-between relative">
         {badGuess ? (
           <Alert className="absolute top-4 w-fit">
             <AlertTitle className="mb-0">Not in the word list</AlertTitle>
@@ -310,6 +312,8 @@ function GameGrid() {
 
       <p className="text-center py-2">
         {game.you.isCurrentTurn ? 'Enter a guess - ' : "Opponent's turn - "}
+
+        {game.others.length === 0 ? '00:00' : null}
 
         {game.guessBy && gameOver?.state.type !== 'timeLimit' ? (
           <Countdown to={game.guessBy} stopped={!!gameOver} className="ml-0" />
@@ -470,7 +474,7 @@ function GameOverDialog({
         </div>
 
         {gameOver.state.solution.wordle_solution ? (
-          <p className="text-center sm:text-left pb-4 text-sm">
+          <p className="text-center sm:text-left text-sm">
             {capitalize(gameOver.state.solution.word)} was the Wordle on{' '}
             {new Date(
               gameOver.state.solution.wordle_solution
@@ -478,6 +482,8 @@ function GameOverDialog({
             .
           </p>
         ) : null}
+
+        <Streak />
 
         <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-3">
           {privateGame ? (
@@ -510,7 +516,9 @@ function GameOverOptions() {
 
   return (
     <>
-      <Button onClick={() => setWaiting(true)}>Play another</Button>
+      <Button onClick={() => setWaiting(true)} autoFocus>
+        Play another
+      </Button>
 
       <Button asChild variant="outline">
         <Link to="/">Go home</Link>
@@ -525,7 +533,9 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
   if (!playAgain) {
     return (
       <>
-        <Button onClick={onPlayAgain}>Ask for a rematch</Button>
+        <Button onClick={onPlayAgain} autoFocus>
+          Ask for a rematch
+        </Button>
 
         <Button asChild variant="outline">
           <Link to="/">Go home</Link>
@@ -562,7 +572,10 @@ function PrivateGameOverOptions({ onPlayAgain }: { onPlayAgain: () => void }) {
     <>
       <p className="text-center sm:text-left">Your opponent wants a rematch</p>
 
-      <Button onClick={onPlayAgain}>Accept</Button>
+      <Button onClick={onPlayAgain} autoFocus>
+        <Icons.Check className="mr-2 h-4 w-4" />
+        Accept
+      </Button>
 
       <Button asChild variant="outline">
         <Link to="/">Go home</Link>

@@ -45,12 +45,27 @@ export default class Server implements Party.PartyKitServer {
 
   async onRequest(request: Party.Request) {
     if (request.method === 'POST') {
-      const update = (await request.json()) as {
-        type: 'connect' | 'disconnect'
-        gameType: GameType
-      }
+      const update = (await request.json()) as
+        | {
+            type: 'connect' | 'disconnect'
+            gameType: GameType
+          }
+        | { type: 'reset' }
 
-      if (update.gameType === 'dash') {
+      if (update.type === 'reset') {
+        await this.party.storage.put('dash', 0)
+        await this.party.storage.put('coop', 0)
+        this.dash = 0
+        this.coop = 0
+
+        this.party.broadcast(
+          JSON.stringify(<SyncConnections>{
+            type: 'sync',
+            dash: this.dash,
+            coop: this.coop,
+          })
+        )
+      } else if (update.gameType === 'dash') {
         this.dash = this.dash ?? (await this.party.storage.get('dash')) ?? 0
         if (update.type === 'connect') this.dash += 1
         if (update.type === 'disconnect') this.dash = Math.max(0, this.dash - 1)

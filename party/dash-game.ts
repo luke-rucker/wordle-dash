@@ -265,7 +265,11 @@ export default class Server implements Party.Server {
   }
 
   async onClose() {
-    if (this.playAgain && this.playAgain.someoneWantsTo()) {
+    if (
+      this.playAgain &&
+      this.playAgain.someoneWantsTo() &&
+      !this.playAgain.everyoneWantsTo()
+    ) {
       rpc.broadcast(this.party, { type: 'goHome' })
     }
 
@@ -330,7 +334,10 @@ export default class Server implements Party.Server {
               .throwOnError()
           : Promise.resolve(),
       ])
-    } else if (gameOver.type === 'timeLimit') {
+    } else if (
+      gameOver.type === 'timeLimit' ||
+      gameOver.type === 'outOfGuesses'
+    ) {
       const loser = gameOver.playerId
       const winner = Object.keys(this.game.players).filter(
         player => player !== loser
@@ -347,6 +354,17 @@ export default class Server implements Party.Server {
               .rpc('set_loss', { user_id: loser, game_type: false })
               .throwOnError()
           : Promise.resolve(),
+      ])
+    } else if (gameOver.type === 'noGuesses') {
+      await Promise.all([
+        Object.keys(this.game.players)
+          .filter(player => this.game?.players[player].type === 'verified')
+          .map(player =>
+            this.supabase
+              .rpc('set_loss', { user_id: player, game_type: false })
+              .throwOnError()
+              .then(() => console.log('loss for', player))
+          ),
       ])
     }
   }

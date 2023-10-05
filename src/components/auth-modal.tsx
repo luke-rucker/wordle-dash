@@ -1,3 +1,4 @@
+import { AppleButton } from '@/components/apple-button'
 import { GoogleButton } from '@/components/google-button'
 import {
   Dialog,
@@ -39,8 +40,10 @@ export function AuthModal({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter>
+        <DialogFooter className="sm:flex-col sm:space-x-0 gap-4">
           <GoogleButton redirectTo={redirectTo} className="w-full" />
+
+          <AppleButton redirectTo={redirectTo} className="w-full" />
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -26,15 +26,15 @@ export function useTimer() {
 
 export function useCountdown(to: number, stopped?: boolean) {
   const [seconds, setSeconds] = React.useState(
-    Math.ceil((to - Date.now()) / 1000)
+    Math.floor((to - Date.now()) / 1000)
   )
 
-  React.useEffect(() => setSeconds(Math.ceil((to - Date.now()) / 1000)), [to])
+  React.useEffect(() => setSeconds(Math.floor((to - Date.now()) / 1000)), [to])
 
   useInterval(
     () => {
       if (seconds <= 0) return
-      setSeconds(Math.ceil((to - Date.now()) / 1000))
+      setSeconds(Math.floor((to - Date.now()) / 1000))
     },
     stopped || seconds <= 0 ? null : 1000
   )

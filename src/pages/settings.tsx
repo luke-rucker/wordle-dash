@@ -1,7 +1,5 @@
 import { Cell } from '@/components/cell'
-import { GoogleButton } from '@/components/google-button'
 import { Icons } from '@/components/icons'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -49,6 +47,7 @@ import { Alpha2Code } from 'i18n-iso-countries'
 import { useForm } from 'react-hook-form'
 import { useLocalStorage } from 'usehooks-ts'
 import ReactGA from 'react-ga4'
+import { SignedOutAlert } from '@/components/signed-out-alert'
 
 export function Settings() {
   const session = useSession()
@@ -112,15 +111,7 @@ function AnonProfileForm() {
         })}
         className="space-y-8"
       >
-        <Alert>
-          <Icons.Info className="h-4 w-4" />
-          <AlertTitle>You're signed out</AlertTitle>
-          <AlertDescription>
-            You can sign into or create your account to save your stats and
-            compete on the leaderboard.
-            <GoogleButton redirectTo="/settings" className="mt-2" />
-          </AlertDescription>
-        </Alert>
+        <SignedOutAlert redirectTo="/settings" />
 
         <FormField
           control={form.control}

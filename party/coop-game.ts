@@ -265,7 +265,11 @@ export default class Server implements Party.Server {
   }
 
   async onClose() {
-    if (this.playAgain && this.playAgain.someoneWantsTo()) {
+    if (
+      this.playAgain &&
+      this.playAgain.someoneWantsTo() &&
+      !this.playAgain.everyoneWantsTo()
+    ) {
       rpc.broadcast(this.party, { type: 'goHome' })
     }
 

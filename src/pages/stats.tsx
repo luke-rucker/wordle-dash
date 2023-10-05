@@ -1,6 +1,4 @@
-import { GoogleButton } from '@/components/google-button'
 import { Icons } from '@/components/icons'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -18,6 +16,8 @@ import * as React from 'react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { useSession } from '@supabase/auth-helpers-react'
 import ReactGA from 'react-ga4'
+import { SignedOutAlert } from '@/components/signed-out-alert'
+import { useToast } from '@/components/ui/use-toast'
 
 export function Stats() {
   const session = useSession()
@@ -39,16 +39,38 @@ export function Stats() {
       .limit(10)
   )
 
+  const myRank = myStats.data?.rank ?? 0
+  const hasSurroundingLeaderboard =
+    !!session && !!myStats.data?.rank && myRank > 10
+
+  const surroundingLeaderboard = useQuery(
+    supabase
+      .from('rankings')
+      .select('id,username,country,streak,wins,losses,rank')
+      .gte('rank', myRank - 2)
+      .lte('rank', myRank + 2),
+    { enabled: hasSurroundingLeaderboard }
+  )
+
+  const toaster = useToast()
+  const [copied, setCopied] = React.useState(false)
+
   const locale = useCurrentLocale()
   const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
 
-  const formatWinsLosses = (wins: number | null, losses: number | null) => {
-    if (!wins && !losses) return 0
-    if (losses === 0 || losses === null) return wins ?? 0
-    return (wins ?? 0) / losses
-  }
+  const formatStats = () => {
+    if (!myStats.data) return
+    const { rank, wins, losses, streak } = myStats.data
+    if (!rank || typeof wins !== 'number' || typeof losses !== 'number') return
 
-  const [copied, setCopied] = React.useState(false)
+    return `My Wordle Dash Stats\n\n🏅 #${formatter.format(
+      rank
+    )} Player in the world\n🏆 ${formatter.format(
+      wins
+    )} Wins\n😔 ${formatter.format(losses)} Losses\n🔥 ${formatter.format(
+      streak ?? 0
+    )} Win Streak\n\nPlay at wordledash.io :)`
+  }
 
   return (
     <div className="flex-grow container py-6 md:py-16">
@@ -64,58 +86,77 @@ export function Stats() {
           </div>
 
           {!session ? (
-            <Alert className="max-w-lg mt-4">
-              <Icons.Info className="h-4 w-4" />
-              <AlertTitle>You're signed out</AlertTitle>
-              <AlertDescription>
-                You can sign into or create your account to save your stats and
-                compete on the leaderboard.
-                <GoogleButton redirectTo="/stats" className="mt-2" />
-              </AlertDescription>
-            </Alert>
+            <SignedOutAlert redirectTo="/stats" className="mt-4 max-w-md" />
           ) : null}
         </div>
 
         {session ? (
-          <Button
-            aria-disabled={myStats.isLoading}
-            className="mt-4"
-            onClick={async () => {
-              if (!myStats.data) return
-              const { rank, wins, losses, streak } = myStats.data
-              if (
-                !rank ||
-                typeof wins !== 'number' ||
-                typeof losses !== 'number'
-              )
-                return
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 mt-4 md:mt-0">
+            <Button
+              aria-disabled={myStats.isLoading}
+              onClick={async () => {
+                const stats = formatStats()
+                if (!stats) return
+                await navigator.clipboard
+                  .writeText(stats)
+                  .then(() => {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2500)
+                    ReactGA.event('copied_stats')
+                  })
+                  .catch(() => {})
+              }}
+            >
+              {copied ? (
+                <>
+                  <Icons.Check className="h-4 w-4 mr-2" />
+                  Copied stats
+                </>
+              ) : (
+                <>
+                  <Icons.Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </>
+              )}
+            </Button>
 
-              const stats = `My Wordle Dash Stats\n\n🏅 #${rank} Player in the world\n🏆 ${wins} Wins\n😔 ${losses} Losses\n🔥 ${
-                streak ?? 0
-              } Win Streak\n\nPlay at wordledash.io :)`
+            <Button
+              aria-disabled={myStats.isLoading}
+              onClick={async () => {
+                const stats = formatStats()
+                if (!stats) return
 
-              await navigator.clipboard
-                .writeText(stats)
-                .then(() => {
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2500)
-                  ReactGA.event('copied_stats')
-                })
-                .catch(() => {})
-            }}
-          >
-            {copied ? (
-              <>
-                <Icons.Check className="h-4 w-4 mr-2" />
-                Copied stats
-              </>
-            ) : (
-              <>
-                <Icons.Share className="h-4 w-4 mr-2" />
-                Share
-              </>
-            )}
-          </Button>
+                if (!navigator.canShare) {
+                  return toaster.toast({
+                    title: 'Your browser does not support sharing.',
+                    variant: 'destructive',
+                  })
+                }
+
+                if (
+                  !navigator.canShare({
+                    title: 'Wordle Dash Stats',
+                    text: stats,
+                  })
+                ) {
+                  return toaster.toast({
+                    title: 'Your browser does not support sharing.',
+                    variant: 'destructive',
+                  })
+                }
+
+                await navigator
+                  .share({ title: 'Wordle Dash Stats', text: stats })
+                  .then(() => {
+                    ReactGA.event('shared_stats')
+                  })
+                  .catch(() => {})
+              }}
+            >
+              <Icons.Share className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -133,9 +174,17 @@ export function Stats() {
           <TableRow>
             <TableHead>Rank</TableHead>
             <TableHead>Username</TableHead>
-            <TableHead>Wins</TableHead>
-            <TableHead>Losses</TableHead>
-            <TableHead className="text-right">W/L Ratio</TableHead>
+            <TableHead>
+              <span className="block sm:hidden">W</span>
+              <span className="hidden sm:block">Wins</span>
+            </TableHead>
+            <TableHead>
+              <span className="block sm:hidden">L</span>
+              <span className="hidden sm:block">Losses</span>
+            </TableHead>
+            <TableHead className="text-right hidden sm:table-cell">
+              W/L Ratio
+            </TableHead>
           </TableRow>
         </TableHeader>
 
@@ -147,27 +196,68 @@ export function Stats() {
                   <TableCell>-</TableCell>
                   <TableCell>0</TableCell>
                   <TableCell>0</TableCell>
-                  <TableCell className="text-right">0</TableCell>
+                  <TableCell className="text-right hidden sm:table-cell">
+                    0
+                  </TableCell>
                 </TableRow>
               ))
             : leaderboard.data?.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">#{user.rank}</TableCell>
-                  <TableCell>
-                    {user.country ? getFlag(user.country) : ' '}{' '}
-                    {user.username ?? '(Guest)'}{' '}
-                    {user.id === session?.user.id ? ' (You)' : null}
-                  </TableCell>
-                  <TableCell>{formatter.format(user.wins ?? 0)}</TableCell>
-                  <TableCell>{formatter.format(user.losses ?? 0)}</TableCell>
-                  <TableCell className="text-right">
-                    {formatter.format(formatWinsLosses(user.wins, user.losses))}
-                  </TableCell>
-                </TableRow>
+                <LeaderboardRow {...user} key={user.id} />
               ))}
+
+          {hasSurroundingLeaderboard ? (
+            <>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center tracking-widest">
+                  ...
+                </TableCell>
+              </TableRow>
+
+              {surroundingLeaderboard.data
+                ?.filter(user => (user.rank ?? 0) > 10)
+                .map(user => <LeaderboardRow {...user} key={user.id} />)}
+            </>
+          ) : null}
         </TableBody>
       </Table>
     </div>
+  )
+}
+
+function LeaderboardRow(user: {
+  id: string | null
+  username: string | null
+  country: string | null
+  streak: number | null
+  wins: number | null
+  losses: number | null
+  rank: number | null
+}) {
+  const session = useSession()
+
+  const formatWinsLosses = (wins: number | null, losses: number | null) => {
+    if (!wins && !losses) return 0
+    if (losses === 0 || losses === null) return wins ?? 0
+    return (wins ?? 0) / losses
+  }
+
+  const locale = useCurrentLocale()
+  const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
+
+  return (
+    <TableRow key={user.id}>
+      <TableCell className="font-medium">#{user.rank}</TableCell>
+      <TableCell>
+        {user.country ? getFlag(user.country) : ' '}{' '}
+        {user.username ?? '(Guest)'}{' '}
+        {user.id === session?.user.id ? ' (You)' : null}
+      </TableCell>
+      <TableCell>{formatter.format(user.wins ?? 0)}</TableCell>
+      <TableCell>{formatter.format(user.losses ?? 0)}</TableCell>
+      <TableCell className="text-right hidden sm:table-cell">
+        {formatter.format(formatWinsLosses(user.wins, user.losses))}
+      </TableCell>
+    </TableRow>
   )
 }
 
