@@ -139,6 +139,27 @@ function Game({
   const [game, setGame] = React.useState<GameState>()
   usePartyMessage('tick', ({ game }) => setGame(game))
 
+  const handleLetter = (letter: string | null) => {
+    client.send({ type: 'typeGuess', guess: letter })
+
+    setGame(game => {
+      if (!game) return
+      if (game.you.currentGuess.length >= SOLUTION_SIZE) return game
+
+      const newGuess = letter
+        ? game.you.currentGuess + letter
+        : game.you.currentGuess.slice(0, -1)
+
+      return {
+        ...game,
+        you: {
+          ...game.you,
+          currentGuess: newGuess,
+        },
+      }
+    })
+  }
+
   const [badGuess, setBadGuess] = React.useState(false)
   usePartyMessage('badGuess', () => setBadGuess(true))
 
@@ -250,8 +271,8 @@ function Game({
         </div>
 
         <Keyboard
-          onLetter={letter => client.send({ type: 'typeGuess', guess: letter })}
-          onDelete={() => client.send({ type: 'typeGuess', guess: null })}
+          onLetter={handleLetter}
+          onDelete={() => handleLetter(null)}
           onEnter={() => client.send({ type: 'submitGuess' })}
           guesses={you.guesses}
           disabled={!!gameOver || !other}
